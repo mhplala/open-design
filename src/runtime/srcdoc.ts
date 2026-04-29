@@ -16,7 +16,7 @@
  */
 export function buildSrcdoc(
   html: string,
-  options: { deck?: boolean } = {}
+  options: { deck?: boolean; baseHref?: string } = {}
 ): string {
   const head = html.trimStart().slice(0, 64).toLowerCase();
   const isFullDoc = head.startsWith("<!doctype") || head.startsWith("<html");
@@ -30,9 +30,30 @@ export function buildSrcdoc(
   </head>
   <body>${html}</body>
 </html>`;
-  const withShim = injectSandboxShim(wrapped);
+  const withBase = options.baseHref ? injectBaseHref(wrapped, options.baseHref) : wrapped;
+  const withShim = injectSandboxShim(withBase);
   if (!options.deck) return withShim;
   return injectDeckBridge(withShim);
+}
+
+function injectBaseHref(doc: string, baseHref: string): string {
+  const safeHref = escapeAttr(baseHref);
+  const tag = `<base href="${safeHref}">`;
+  if (/<head[^>]*>/i.test(doc)) {
+    return doc.replace(/<head[^>]*>/i, (m) => `${m}${tag}`);
+  }
+  if (/<html[^>]*>/i.test(doc)) {
+    return doc.replace(/<html[^>]*>/i, (m) => `${m}<head>${tag}</head>`);
+  }
+  return tag + doc;
+}
+
+function escapeAttr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 // Sandboxed iframes (we use `sandbox="allow-scripts"`) without

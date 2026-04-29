@@ -7,6 +7,11 @@ import { MEDIA_PROVIDERS } from '../media/models';
 import type { MediaProvider, MediaProviderId } from '../media/models';
 import { AgentIcon } from './AgentIcon';
 import { Icon } from './Icon';
+import {
+  CUSTOM_MODEL_SENTINEL,
+  isCustomModel,
+  renderModelOptions,
+} from './modelOptions';
 import type {
   AgentInfo,
   AppConfig,
@@ -344,6 +349,104 @@ function ExecutionPanel({
               })}
             </div>
           )}
+          {(() => {
+            const selected = agents.find(
+              (a) => a.id === cfg.agentId && a.available,
+            );
+            if (!selected) return null;
+            const hasModels =
+              Array.isArray(selected.models) && selected.models.length > 0;
+            const hasReasoning =
+              Array.isArray(selected.reasoningOptions) &&
+              selected.reasoningOptions.length > 0;
+            if (!hasModels && !hasReasoning) return null;
+            const choice = cfg.agentModels?.[selected.id] ?? {};
+            const setChoice = (
+              next: { model?: string; reasoning?: string },
+            ) => {
+              setCfg((c) => {
+                const prev = c.agentModels?.[selected.id] ?? {};
+                return {
+                  ...c,
+                  agentModels: {
+                    ...(c.agentModels ?? {}),
+                    [selected.id]: { ...prev, ...next },
+                  },
+                };
+              });
+            };
+            const modelValue =
+              choice.model ?? selected.models?.[0]?.id ?? '';
+            const reasoningValue =
+              choice.reasoning ??
+              selected.reasoningOptions?.[0]?.id ?? '';
+            const customActive =
+              hasModels && isCustomModel(modelValue, selected.models!);
+            const selectValue = customActive
+              ? CUSTOM_MODEL_SENTINEL
+              : modelValue;
+            return (
+              <div className="agent-model-row">
+                {hasModels ? (
+                  <label className="field">
+                    <span className="field-label">
+                      {t('settings.modelPicker')}
+                    </span>
+                    <select
+                      value={selectValue}
+                      onChange={(e) => {
+                        if (e.target.value === CUSTOM_MODEL_SENTINEL) {
+                          setChoice({ model: '' });
+                        } else {
+                          setChoice({ model: e.target.value });
+                        }
+                      }}
+                    >
+                      {renderModelOptions(selected.models!)}
+                      <option value={CUSTOM_MODEL_SENTINEL}>
+                        {t('settings.modelCustom')}
+                      </option>
+                    </select>
+                  </label>
+                ) : null}
+                {customActive ? (
+                  <label className="field">
+                    <span className="field-label">
+                      {t('settings.modelCustomLabel')}
+                    </span>
+                    <input
+                      type="text"
+                      value={modelValue}
+                      placeholder={t('settings.modelCustomPlaceholder')}
+                      onChange={(e) =>
+                        setChoice({ model: e.target.value.trim() })
+                      }
+                    />
+                  </label>
+                ) : null}
+                {hasReasoning ? (
+                  <label className="field">
+                    <span className="field-label">
+                      {t('settings.reasoningPicker')}
+                    </span>
+                    <select
+                      value={reasoningValue}
+                      onChange={(e) =>
+                        setChoice({ reasoning: e.target.value })
+                      }
+                    >
+                      {selected.reasoningOptions!.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <p className="hint">{t('settings.modelPickerHint')}</p>
+              </div>
+            );
+          })()}
         </section>
       ) : (
         <section className="settings-section">

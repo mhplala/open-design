@@ -12,6 +12,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   designSystemId: null,
   onboardingCompleted: false,
   mediaProviders: {},
+  agentModels: {},
 };
 
 export function loadConfig(): AppConfig {
@@ -23,6 +24,7 @@ export function loadConfig(): AppConfig {
       ...DEFAULT_CONFIG,
       ...parsed,
       mediaProviders: { ...(parsed.mediaProviders ?? {}) },
+      agentModels: { ...(parsed.agentModels ?? {}) },
     };
   } catch {
     return { ...DEFAULT_CONFIG };

@@ -1,3 +1,5 @@
+import type { ArtifactKind, ArtifactManifest } from './artifacts/types';
+
 export type ExecMode = 'daemon' | 'api';
 
 export interface MediaProviderCredentials {
@@ -5,6 +7,15 @@ export interface MediaProviderCredentials {
   apiKey: string;
   /** Optional baseUrl override — empty string means "use the provider default". */
   baseUrl: string;
+}
+
+// Per-CLI model + reasoning the user picked in the model menu. Each agent
+// keeps its own slot so flipping between Codex and Gemini doesn't reset the
+// other one's choice. Missing entries fall back to the agent's first
+// declared model (`'default'` — let the CLI pick).
+export interface AgentModelChoice {
+  model?: string;
+  reasoning?: string;
 }
 
 export interface AppConfig {
@@ -26,6 +37,10 @@ export interface AppConfig {
    * the daemon can dispatch real OpenAI / Volcengine calls.
    */
   mediaProviders?: Record<string, MediaProviderCredentials>;
+  // Per-CLI model picker state, keyed by agent id (e.g. `gemini`, `codex`).
+  // Pre-existing configs without this field fall through to the agent's
+  // declared default.
+  agentModels?: Record<string, AgentModelChoice>;
 }
 
 export type AgentEvent =
@@ -77,6 +92,11 @@ export interface ExamplePreview {
   html: string;
 }
 
+export interface AgentModelOption {
+  id: string;
+  label: string;
+}
+
 export interface AgentInfo {
   id: string;
   name: string;
@@ -84,6 +104,12 @@ export interface AgentInfo {
   available: boolean;
   path?: string;
   version?: string | null;
+  // Models surfaced in the model picker for this CLI. The first entry is
+  // treated as the default (typically the synthetic `'default'` option,
+  // meaning "let the CLI use whatever's in its own config").
+  models?: AgentModelOption[];
+  // Reasoning-effort presets — currently only Codex exposes this.
+  reasoningOptions?: AgentModelOption[];
 }
 
 // The four "surfaces" Open Design now produces. Web covers HTML
@@ -167,6 +193,10 @@ export type ProjectFileKind =
   | 'sketch'
   | 'text'
   | 'code'
+  | 'pdf'
+  | 'document'
+  | 'presentation'
+  | 'spreadsheet'
   | 'binary';
 
 export interface ProjectFile {
@@ -184,6 +214,8 @@ export interface ProjectFile {
   mtime: number;
   kind: ProjectFileKind;
   mime: string;
+  artifactKind?: ArtifactKind;
+  artifactManifest?: ArtifactManifest;
 }
 
 // Per-project metadata captured at creation time. The agent reads this
@@ -264,6 +296,10 @@ export interface ProjectMetadata {
   // Free-form voice description for TTS (e.g. "warm female narrator,
   // British English"). Ignored for music / SFX.
   voice?: string;
+  // Imported static-site projects, currently used for Claude Design ZIPs.
+  importedFrom?: 'claude-design' | string;
+  entryFile?: string;
+  sourceFileName?: string;
 }
 
 export interface Project {

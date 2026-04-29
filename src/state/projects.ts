@@ -57,6 +57,27 @@ export async function createProject(input: {
   }
 }
 
+export async function importClaudeDesignZip(
+  file: File,
+): Promise<{ project: Project; conversationId: string; entryFile: string } | null> {
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const resp = await fetch('/api/import/claude-design', {
+      method: 'POST',
+      body: form,
+    });
+    if (!resp.ok) return null;
+    return (await resp.json()) as {
+      project: Project;
+      conversationId: string;
+      entryFile: string;
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ---------- templates ----------
 
 export async function listTemplates(): Promise<ProjectTemplate[]> {

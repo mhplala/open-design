@@ -115,6 +115,12 @@ export interface Dict {
   'settings.mediaProviderBaseUrlPlaceholder': string;
   'settings.mediaSectionExpand': string;
   'settings.mediaSectionCollapse': string;
+  'settings.modelPicker': string;
+  'settings.reasoningPicker': string;
+  'settings.modelPickerHint': string;
+  'settings.modelCustom': string;
+  'settings.modelCustomLabel': string;
+  'settings.modelCustomPlaceholder': string;
 
   // Entry view / tabs
   'entry.tabDesigns': string;
@@ -193,6 +199,9 @@ export interface Dict {
   'newproj.create': string;
   'newproj.createFromTemplate': string;
   'newproj.createDisabledTitle': string;
+  'newproj.importClaudeZip': string;
+  'newproj.importClaudeZipTitle': string;
+  'newproj.importingClaudeZip': string;
   'newproj.privacyFooter': string;
   'newproj.designSystem': string;
   'newproj.dsNoneFreeform': string;
@@ -305,6 +314,10 @@ export interface Dict {
   'avatar.metaOffline': string;
   'avatar.metaSelected': string;
   'avatar.noAgentSelected': string;
+  'avatar.modelSection': string;
+  'avatar.modelLabel': string;
+  'avatar.reasoningLabel': string;
+  'avatar.customSuffix': string;
 
   // Project view / chat pane / composer
   'project.backToProjects': string;
@@ -412,6 +425,10 @@ export interface Dict {
   'designFiles.kindSketch': string;
   'designFiles.kindText': string;
   'designFiles.kindCode': string;
+  'designFiles.kindPdf': string;
+  'designFiles.kindDocument': string;
+  'designFiles.kindPresentation': string;
+  'designFiles.kindSpreadsheet': string;
   'designFiles.kindBinary': string;
   'pasteDialog.title': string;
   'pasteDialog.hint': string;
@@ -435,6 +452,11 @@ export interface Dict {
   'fileViewer.share': string;
   'fileViewer.binaryMeta': string;
   'fileViewer.binaryNote': string;
+  'fileViewer.pdfMeta': string;
+  'fileViewer.documentMeta': string;
+  'fileViewer.presentationMeta': string;
+  'fileViewer.spreadsheetMeta': string;
+  'fileViewer.previewUnavailable': string;
   'fileViewer.download': string;
   'fileViewer.open': string;
   'fileViewer.imageMeta': string;

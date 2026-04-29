@@ -7,6 +7,7 @@ import type {
   SkillDetail,
   SkillSummary,
 } from '../types';
+import type { ArtifactManifest } from '../artifacts/types';
 
 export async function fetchAgents(): Promise<AgentInfo[]> {
   try {
@@ -94,7 +95,33 @@ export async function fetchProjectFiles(projectId: string): Promise<ProjectFile[
 }
 
 export function projectFileUrl(projectId: string, name: string): string {
-  return `/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(name)}`;
+  return projectRawUrl(projectId, name);
+}
+
+export interface ProjectFilePreviewSection {
+  title: string;
+  lines: string[];
+}
+
+export interface ProjectFilePreview {
+  kind: 'pdf' | 'document' | 'presentation' | 'spreadsheet';
+  title: string;
+  sections: ProjectFilePreviewSection[];
+}
+
+export async function fetchProjectFilePreview(
+  projectId: string,
+  name: string,
+): Promise<ProjectFilePreview | null> {
+  try {
+    const resp = await fetch(
+      `/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(name)}/preview`,
+    );
+    if (!resp.ok) return null;
+    return (await resp.json()) as ProjectFilePreview;
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchProjectFileText(
@@ -114,12 +141,13 @@ export async function writeProjectTextFile(
   projectId: string,
   name: string,
   content: string,
+  options?: { artifactManifest?: ArtifactManifest },
 ): Promise<ProjectFile | null> {
   try {
     const resp = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, content }),
+      body: JSON.stringify({ name, content, artifactManifest: options?.artifactManifest }),
     });
     if (!resp.ok) return null;
     const json = (await resp.json()) as { file: ProjectFile };
@@ -173,31 +201,94 @@ export async function uploadProjectFile(
 // picker. Each file lands flat in the project folder; the response is
 // reshaped into ChatAttachments so the composer can stage them without a
 // follow-up listFiles round-trip.
+const PROJECT_UPLOAD_BATCH_SIZE = 12;
+
+export interface ProjectUploadFailure {
+  name: string;
+  code?: string;
+  error?: string;
+}
+
+export interface UploadProjectFilesResult {
+  uploaded: ChatAttachment[];
+  failed: ProjectUploadFailure[];
+  error?: string;
+}
+
 export async function uploadProjectFiles(
   projectId: string,
   files: File[],
-): Promise<ChatAttachment[]> {
-  if (files.length === 0) return [];
-  try {
+): Promise<UploadProjectFilesResult> {
+  if (files.length === 0) return { uploaded: [], failed: [] };
+
+  const uploaded: ChatAttachment[] = [];
+  const failed: ProjectUploadFailure[] = [];
+  let error: string | undefined;
+
+  for (let i = 0; i < files.length; i += PROJECT_UPLOAD_BATCH_SIZE) {
+    const batch = files.slice(i, i + PROJECT_UPLOAD_BATCH_SIZE);
+    const remaining = files.slice(i + PROJECT_UPLOAD_BATCH_SIZE);
     const form = new FormData();
-    for (const f of files) form.append('files', f);
-    const resp = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/upload`,
-      { method: 'POST', body: form },
-    );
-    if (!resp.ok) return [];
-    const json = (await resp.json()) as {
-      files: { name: string; path: string; size?: number; originalName?: string }[];
-    };
-    return (json.files ?? []).map((f) => ({
-      path: f.path,
-      name: f.originalName ?? f.name,
-      kind: looksLikeImage(f.name) ? 'image' : 'file',
-      size: f.size,
-    }));
-  } catch {
-    return [];
+    for (const f of batch) form.append('files', f);
+
+    try {
+      const resp = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}/upload`,
+        { method: 'POST', body: form },
+      );
+
+      if (!resp.ok) {
+        const payload = (await resp.json().catch(() => null)) as
+          | { code?: string; error?: string }
+          | null;
+        error = payload?.error ?? `upload failed (${resp.status})`;
+        for (const f of batch) {
+          failed.push({ name: f.name, code: payload?.code, error: error });
+        }
+        for (const f of remaining) {
+          failed.push({ name: f.name, code: payload?.code, error: error });
+        }
+        break;
+      }
+
+      const json = (await resp.json()) as {
+        files: { name: string; path: string; size?: number; originalName?: string }[];
+      };
+      uploaded.push(
+        ...(json.files ?? []).map((f) => ({
+          path: f.path,
+          name: f.originalName ?? f.name,
+          kind: looksLikeImage(f.name) ? ('image' as const) : ('file' as const),
+          size: f.size,
+        })),
+      );
+      const uploadedNames = new Map<string, number>();
+      for (const f of json.files ?? []) {
+        const key = f.originalName ?? f.name;
+        uploadedNames.set(key, (uploadedNames.get(key) ?? 0) + 1);
+      }
+      for (const f of batch) {
+        const count = uploadedNames.get(f.name) ?? 0;
+        if (count > 0) {
+          uploadedNames.set(f.name, count - 1);
+          continue;
+        }
+        error ??= 'some files could not be stored';
+        failed.push({ name: f.name, error: error });
+      }
+    } catch {
+      error = 'upload request failed';
+      for (const f of batch) {
+        failed.push({ name: f.name, error });
+      }
+      for (const f of remaining) {
+        failed.push({ name: f.name, error });
+      }
+      break;
+    }
   }
+
+  return { uploaded, failed, error };
 }
 
 // Stable URL that serves a project file with its original mime — for
@@ -210,7 +301,7 @@ export function projectRawUrl(projectId: string, filePath: string): string {
     .split('/')
     .map((seg) => encodeURIComponent(seg))
     .join('/');
-  return `/api/projects/${encodeURIComponent(projectId)}/files/${safePath}`;
+  return `/api/projects/${encodeURIComponent(projectId)}/raw/${safePath}`;
 }
 
 function looksLikeImage(name: string): boolean {
@@ -223,7 +314,7 @@ export async function deleteProjectFile(
 ): Promise<boolean> {
   try {
     const resp = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(name)}`,
+      projectRawUrl(projectId, name),
       { method: 'DELETE' },
     );
     return resp.ok;

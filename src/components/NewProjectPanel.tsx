@@ -52,6 +52,7 @@ interface Props {
   // Lets the model picker deep-link the user to the Media tab in
   // Settings when they hit a provider that needs an API key.
   onOpenSettings: (tab?: SettingsTab) => void;
+  onImportClaudeDesign?: (file: File) => Promise<void> | void;
   loading?: boolean;
 }
 
@@ -97,9 +98,12 @@ export function NewProjectPanel({
   config,
   onCreate,
   onOpenSettings,
+  onImportClaudeDesign,
   loading = false,
 }: Props) {
   const t = useT();
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const [importing, setImporting] = useState(false);
   // Top-level surface — controls which sub-form renders below. We keep
   // it separate from the Web tab state so users can flip between
   // surfaces without losing their per-surface choices.
@@ -242,6 +246,18 @@ export function NewProjectPanel({
   // skip the row entirely because each has a single dedicated form.
   const showWebTabs = surface === 'web';
 
+  async function handleImportPicked(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0];
+    ev.target.value = '';
+    if (!file || !onImportClaudeDesign) return;
+    setImporting(true);
+    try {
+      await onImportClaudeDesign(file);
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
     <div className="newproj">
       <SurfacePicker value={surface} onChange={setSurface} />
@@ -369,6 +385,31 @@ export function NewProjectPanel({
               : t('newproj.create')}
           </span>
         </button>
+        {onImportClaudeDesign ? (
+          <>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".zip,application/zip"
+              hidden
+              onChange={handleImportPicked}
+            />
+            <button
+              type="button"
+              className="ghost newproj-import"
+              disabled={loading || importing}
+              title={t('newproj.importClaudeZipTitle')}
+              onClick={() => importInputRef.current?.click()}
+            >
+              <Icon name="import" size={13} />
+              <span>
+                {importing
+                  ? t('newproj.importingClaudeZip')
+                  : t('newproj.importClaudeZip')}
+              </span>
+            </button>
+          </>
+        ) : null}
       </div>
       <div className="newproj-footer">{t('newproj.privacyFooter')}</div>
     </div>

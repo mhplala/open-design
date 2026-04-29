@@ -8,8 +8,13 @@
 
 import { mkdir, readdir, readFile, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import {
+  inferLegacyManifest,
+  parsePersistedManifest,
+  validateArtifactManifestInput,
+} from './artifact-manifest.js';
 
-const FORBIDDEN_NAME = /[\\/]|^\.\.?$/;
+const FORBIDDEN_SEGMENT = /^$|^\.\.?$/;
 
 export function projectDir(projectsRoot, projectId) {
   if (!isSafeId(projectId)) throw new Error('invalid project id');
@@ -24,35 +29,45 @@ export async function ensureProject(projectsRoot, projectId) {
 
 export async function listFiles(projectsRoot, projectId) {
   const dir = projectDir(projectsRoot, projectId);
+  const out = [];
+  await collectFiles(dir, '', out);
+  // Newest first — matches the visual order users expect after generating.
+  out.sort((a, b) => b.mtime - a.mtime);
+  return out;
+}
+
+async function collectFiles(dir, relDir, out) {
   let entries = [];
   try {
     entries = await readdir(dir, { withFileTypes: true });
   } catch (err) {
-    if (err && err.code === 'ENOENT') return [];
+    if (err && err.code === 'ENOENT') return;
     throw err;
   }
-  const out = [];
   for (const e of entries) {
-    if (!e.isFile()) continue;
     if (e.name.startsWith('.')) continue;
+    const rel = relDir ? `${relDir}/${e.name}` : e.name;
     const full = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      await collectFiles(full, rel, out);
+      continue;
+    }
+    if (!e.isFile()) continue;
+    if (e.name.endsWith('.artifact.json')) continue;
     const st = await stat(full);
+    const manifest = await readManifestForPath(dir, rel);
     out.push({
-      name: e.name,
-      // The project folder is flat today so `path` equals `name`. We emit
-      // both so frontend code that thinks in path terms (the @-mention
-      // picker, attachment chips) can stay path-shaped without a remap.
-      path: e.name,
+      name: rel,
+      path: rel,
       type: 'file',
       size: st.size,
       mtime: st.mtimeMs,
-      kind: kindFor(e.name),
-      mime: mimeFor(e.name),
+      kind: kindFor(rel),
+      mime: mimeFor(rel),
+      artifactKind: manifest?.kind,
+      artifactManifest: manifest,
     });
   }
-  // Newest first — matches the visual order users expect after generating.
-  out.sort((a, b) => b.mtime - a.mtime);
-  return out;
 }
 
 export async function readProjectFile(projectsRoot, projectId, name) {
@@ -60,13 +75,18 @@ export async function readProjectFile(projectsRoot, projectId, name) {
   const file = resolveSafe(dir, name);
   const buf = await readFile(file);
   const st = await stat(file);
+  const rel = toProjectPath(path.relative(dir, file));
+  const manifest = await readManifestForPath(dir, rel);
   return {
     buffer: buf,
-    name: path.basename(file),
+    name: rel,
+    path: rel,
     size: st.size,
     mtime: st.mtimeMs,
-    mime: mimeFor(file),
-    kind: kindFor(file),
+    mime: mimeFor(rel),
+    kind: kindFor(rel),
+    artifactKind: manifest?.kind,
+    artifactManifest: manifest,
   };
 }
 
@@ -75,11 +95,11 @@ export async function writeProjectFile(
   projectId,
   name,
   body,
-  { overwrite = true } = {},
+  { overwrite = true, artifactManifest = null } = {},
 ) {
   const dir = await ensureProject(projectsRoot, projectId);
-  const safeName = sanitizeName(name);
-  const target = path.join(dir, safeName);
+  const safeName = sanitizePath(name);
+  const target = resolveSafe(dir, safeName);
   if (!overwrite) {
     try {
       await stat(target);
@@ -88,15 +108,51 @@ export async function writeProjectFile(
       if (!err || err.code !== 'ENOENT') throw err;
     }
   }
+  await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, body);
+  if (artifactManifest && typeof artifactManifest === 'object') {
+    const manifestFileName = artifactManifestNameFor(safeName);
+    const manifestTarget = resolveSafe(dir, manifestFileName);
+    const validated = validateArtifactManifestInput(artifactManifest, safeName);
+    if (validated.ok && validated.value) {
+      const nextManifest = validated.value;
+      await writeFile(manifestTarget, JSON.stringify(nextManifest, null, 2));
+    }
+  }
   const st = await stat(target);
+  const persistedManifest = await readManifestForPath(dir, safeName);
   return {
     name: safeName,
+    path: safeName,
     size: st.size,
     mtime: st.mtimeMs,
     kind: kindFor(safeName),
     mime: mimeFor(safeName),
+    artifactKind: persistedManifest?.kind,
+    artifactManifest: persistedManifest,
   };
+}
+
+function artifactManifestNameFor(name) {
+  return `${name}.artifact.json`;
+}
+
+async function readManifestForPath(projectDirPath, relPath) {
+  const manifestPath = path.join(projectDirPath, artifactManifestNameFor(relPath));
+  try {
+    const raw = await readFile(manifestPath, 'utf8');
+    const parsed = parseManifest(raw);
+    if (parsed) return parsed;
+  } catch (err) {
+    if (!err || err.code !== 'ENOENT') {
+      // ignore malformed/invalid manifests and fallback to inference
+    }
+  }
+  return inferLegacyManifest(relPath);
+}
+
+function parseManifest(raw) {
+  return parsePersistedManifest(raw, '');
 }
 
 export async function deleteProjectFile(projectsRoot, projectId, name) {
@@ -111,14 +167,32 @@ export async function removeProjectDir(projectsRoot, projectId) {
 }
 
 function resolveSafe(dir, name) {
-  if (typeof name !== 'string' || !name || FORBIDDEN_NAME.test(name)) {
-    throw new Error('invalid file name');
-  }
-  const target = path.resolve(dir, name);
+  const safePath = validateProjectPath(name);
+  const target = path.resolve(dir, safePath);
   if (!target.startsWith(dir + path.sep) && target !== dir) {
     throw new Error('path escapes project dir');
   }
   return target;
+}
+
+export function sanitizePath(raw) {
+  const normalized = validateProjectPath(raw);
+  return normalized.split('/').map(sanitizeName).join('/');
+}
+
+export function validateProjectPath(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    throw new Error('invalid file name');
+  }
+  if (raw.includes('\0') || /^[A-Za-z]:/.test(raw) || raw.startsWith('/')) {
+    throw new Error('invalid file name');
+  }
+  const normalized = raw.replace(/\\/g, '/');
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts.length === 0 || parts.some((p) => FORBIDDEN_SEGMENT.test(p))) {
+    throw new Error('invalid file name');
+  }
+  return parts.join('/');
 }
 
 // Replace anything outside [A-Za-z0-9._-] with underscore. Spaces collapse
@@ -131,6 +205,10 @@ export function sanitizeName(raw) {
     .replace(/^\.+/, '_')
     .trim();
   return cleaned || `file-${Date.now()}`;
+}
+
+function toProjectPath(raw) {
+  return raw.split(path.sep).join('/');
 }
 
 function isSafeId(id) {
@@ -149,6 +227,10 @@ const EXT_MIME = {
   '.json': 'application/json; charset=utf-8',
   '.md': 'text/markdown; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',
+  '.pdf': 'application/pdf',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -198,5 +280,9 @@ export function kindFor(name) {
   if (['.js', '.mjs', '.cjs', '.ts', '.tsx', '.json', '.css'].includes(ext)) {
     return 'code';
   }
+  if (ext === '.pdf') return 'pdf';
+  if (ext === '.docx') return 'document';
+  if (ext === '.pptx') return 'presentation';
+  if (ext === '.xlsx') return 'spreadsheet';
   return 'binary';
 }
