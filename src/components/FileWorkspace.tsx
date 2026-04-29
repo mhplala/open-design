@@ -413,12 +413,9 @@ export function FileWorkspace({
       <input
         ref={fileInputRef}
         type="file"
-<<<<<<< HEAD
         multiple
-=======
         data-testid="design-files-upload-input"
         accept="image/*"
->>>>>>> a452098 (test: add e2e ui automation suite)
         style={{ display: 'none' }}
         onChange={handleFilePicked}
       />

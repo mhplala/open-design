@@ -1,4 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
+import { resolveDevPorts } from '../scripts/resolve-dev-ports.mjs';
+
+const desiredDaemonPort = Number(process.env.OD_PORT) || 17_456;
+const desiredVitePort = Number(process.env.VITE_PORT) || 17_573;
+const { daemonPort, vitePort } = await resolveDevPorts({
+  daemonStart: desiredDaemonPort,
+  viteStart: desiredVitePort,
+  searchRange: 200,
+});
+const baseURL = `http://127.0.0.1:${vitePort}`;
 
 export default defineConfig({
   testDir: './specs',
@@ -25,13 +35,16 @@ export default defineConfig({
         ['./reporters/markdown-reporter.cjs', { outputFile: 'e2e/reports/latest.md' }],
       ],
   use: {
-    baseURL: 'http://localhost:17573',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'OD_DATA_DIR=e2e/.od-data OD_PORT=17456 VITE_PORT=17573 npm run dev:all',
-    url: 'http://localhost:17573',
+    command:
+      `OD_DATA_DIR=e2e/.od-data ` +
+      `OD_PORT=${daemonPort} OD_PORT_STRICT=1 ` +
+      `VITE_PORT=${vitePort} VITE_PORT_STRICT=1 npm run dev:all`,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
