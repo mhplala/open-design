@@ -259,7 +259,7 @@ export function NewProjectPanel({
   }
 
   return (
-    <div className="newproj">
+    <div className="newproj" data-testid="new-project-panel">
       <SurfacePicker value={surface} onChange={setSurface} />
       {showWebTabs ? (
         <div className="newproj-tabs" role="tablist">
@@ -267,6 +267,7 @@ export function NewProjectPanel({
             <button
               key={entry}
               role="tab"
+              data-testid={`new-project-tab-${entry}`}
               aria-selected={tab === entry}
               className={`newproj-tab ${tab === entry ? 'active' : ''}`}
               onClick={() => setTab(entry)}

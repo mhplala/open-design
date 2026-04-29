@@ -72,6 +72,8 @@ function migrate(db) {
       conversation_id TEXT NOT NULL,
       role TEXT NOT NULL,
       content TEXT NOT NULL,
+      agent_id TEXT,
+      agent_name TEXT,
       events_json TEXT,
       attachments_json TEXT,
       produced_files_json TEXT,
@@ -102,6 +104,13 @@ function migrate(db) {
   const cols = db.prepare(`PRAGMA table_info(projects)`).all();
   if (!cols.some((c) => c.name === 'metadata_json')) {
     db.exec(`ALTER TABLE projects ADD COLUMN metadata_json TEXT`);
+  }
+  const messageCols = db.prepare(`PRAGMA table_info(messages)`).all();
+  if (!messageCols.some((c) => c.name === 'agent_id')) {
+    db.exec(`ALTER TABLE messages ADD COLUMN agent_id TEXT`);
+  }
+  if (!messageCols.some((c) => c.name === 'agent_name')) {
+    db.exec(`ALTER TABLE messages ADD COLUMN agent_name TEXT`);
   }
 }
 
@@ -338,7 +347,8 @@ export function deleteConversation(db, id) {
 export function listMessages(db, conversationId) {
   return db
     .prepare(
-      `SELECT id, role, content, events_json AS eventsJson,
+      `SELECT id, role, content, agent_id AS agentId, agent_name AS agentName,
+              events_json AS eventsJson,
               attachments_json AS attachmentsJson,
               produced_files_json AS producedFilesJson,
               started_at AS startedAt, ended_at AS endedAt,
@@ -359,12 +369,15 @@ export function upsertMessage(db, conversationId, m) {
   if (existing) {
     db.prepare(
       `UPDATE messages
-          SET role = ?, content = ?, events_json = ?, attachments_json = ?,
+          SET role = ?, content = ?, agent_id = ?, agent_name = ?,
+              events_json = ?, attachments_json = ?,
               produced_files_json = ?, started_at = ?, ended_at = ?
         WHERE id = ?`,
     ).run(
       m.role,
       m.content,
+      m.agentId ?? null,
+      m.agentName ?? null,
       m.events ? JSON.stringify(m.events) : null,
       m.attachments ? JSON.stringify(m.attachments) : null,
       m.producedFiles ? JSON.stringify(m.producedFiles) : null,
@@ -379,17 +392,22 @@ export function upsertMessage(db, conversationId, m) {
       )
       .get(conversationId);
     const position = (max?.m ?? -1) + 1;
+    // 13 values: id, conversation_id, role, content, agent_id, agent_name,
+    // events_json, attachments_json, produced_files_json, started_at,
+    // ended_at, position, created_at.
     db.prepare(
       `INSERT INTO messages
-         (id, conversation_id, role, content, events_json,
+         (id, conversation_id, role, content, agent_id, agent_name, events_json,
           attachments_json, produced_files_json,
           started_at, ended_at, position, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       m.id,
       conversationId,
       m.role,
       m.content,
+      m.agentId ?? null,
+      m.agentName ?? null,
       m.events ? JSON.stringify(m.events) : null,
       m.attachments ? JSON.stringify(m.attachments) : null,
       m.producedFiles ? JSON.stringify(m.producedFiles) : null,
@@ -406,7 +424,8 @@ export function upsertMessage(db, conversationId, m) {
   );
   const row = db
     .prepare(
-      `SELECT id, role, content, events_json AS eventsJson,
+      `SELECT id, role, content, agent_id AS agentId, agent_name AS agentName,
+              events_json AS eventsJson,
               attachments_json AS attachmentsJson,
               produced_files_json AS producedFilesJson,
               started_at AS startedAt, ended_at AS endedAt,
@@ -426,6 +445,8 @@ function normalizeMessage(row) {
     id: row.id,
     role: row.role,
     content: row.content,
+    agentId: row.agentId ?? undefined,
+    agentName: row.agentName ?? undefined,
     events: parseJsonOrUndef(row.eventsJson),
     attachments: parseJsonOrUndef(row.attachmentsJson),
     producedFiles: parseJsonOrUndef(row.producedFilesJson),
