@@ -15,8 +15,9 @@
 // (labelled SVG-PNG, silent WAV/MP3, blank MP4) so the framework works
 // without API keys.
 //
-// Today we ship two real integrations:
+// Today we ship real integrations for:
 //   * provider 'openai'     → OpenAI Images API (gpt-image-* / dall-e-*),
+//                              plus text-to-speech via /v1/audio/speech,
 //                              with auto-detection for Azure OpenAI
 //                              deployments based on the configured base URL
 //   * provider 'volcengine' → Volcengine Ark async tasks API for
@@ -240,6 +241,15 @@ export async function generateMedia(args) {
   try {
     if (def.provider === 'openai' && surface === 'image') {
       const result = await renderOpenAIImage(ctx, credentials);
+      bytes = result.bytes;
+      providerNote = result.providerNote;
+      suggestedExt = result.suggestedExt;
+    } else if (
+      def.provider === 'openai'
+      && surface === 'audio'
+      && ctx.audioKind === 'speech'
+    ) {
+      const result = await renderOpenAISpeech(ctx, credentials, safeOut);
       bytes = result.bytes;
       providerNote = result.providerNote;
       suggestedExt = result.suggestedExt;
@@ -519,6 +529,113 @@ function openaiSizeFor(model, aspect) {
   }
   // dall-e-2 only supports 256/512/1024 squares.
   return '1024x1024';
+}
+
+const OPENAI_TTS_VOICES = new Set([
+  'alloy',
+  'ash',
+  'ballad',
+  'coral',
+  'echo',
+  'fable',
+  'onyx',
+  'nova',
+  'sage',
+  'shimmer',
+  'verse',
+]);
+
+function buildOpenAISpeechUrl(baseUrl, isAzure) {
+  let parsed;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    const stripped = baseUrl.replace(/\/$/, '');
+    return `${stripped}/audio/speech`;
+  }
+  parsed.pathname = parsed.pathname.replace(/\/+$/, '') + '/audio/speech';
+  if (isAzure && !parsed.searchParams.has('api-version')) {
+    parsed.searchParams.set('api-version', AZURE_DEFAULT_API_VERSION);
+  }
+  return parsed.toString();
+}
+
+function openaiSpeechFormatFor(fileName) {
+  const ext = path.extname(fileName).toLowerCase();
+  if (ext === '.wav') return 'wav';
+  if (ext === '.flac') return 'flac';
+  if (ext === '.aac') return 'aac';
+  if (ext === '.opus' || ext === '.ogg' || ext === '.oga') return 'opus';
+  return 'mp3';
+}
+
+async function renderOpenAISpeech(ctx, credentials, fileName) {
+  if (!credentials.apiKey) {
+    throw new Error('no OpenAI API key — configure it in Settings or set OPENAI_API_KEY');
+  }
+  const rawBase = credentials.baseUrl || 'https://api.openai.com/v1';
+  const azure = detectAzureEndpoint(rawBase);
+  const url = buildOpenAISpeechUrl(rawBase, azure);
+  const format = openaiSpeechFormatFor(fileName);
+  const text = (ctx.prompt && ctx.prompt.trim()) || 'This is a test.';
+
+  let voiceId = 'alloy';
+  let instructions = '';
+  const requestedVoice = (ctx.voice && ctx.voice.trim()) || '';
+  if (requestedVoice) {
+    if (OPENAI_TTS_VOICES.has(requestedVoice)) {
+      voiceId = requestedVoice;
+    } else {
+      // gpt-4o-mini-tts accepts free-form speaking style instructions.
+      // If the UI metadata carries prose rather than a concrete voice id,
+      // preserve it here instead of surfacing a provider error.
+      instructions = requestedVoice;
+    }
+  }
+
+  const body = {
+    input: text,
+    voice: voiceId,
+    response_format: format,
+  };
+  if (!azure) {
+    body.model = ctx.model;
+  }
+  if (instructions && ctx.model === 'gpt-4o-mini-tts') {
+    body.instructions = instructions;
+  }
+
+  const headers = {
+    authorization: `Bearer ${credentials.apiKey}`,
+    'content-type': 'application/json',
+  };
+  if (azure) {
+    headers['api-key'] = credentials.apiKey;
+  }
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    const tag = azure ? 'azure-openai' : 'openai';
+    throw new Error(`${tag} speech ${resp.status}: ${truncate(text, 240)}`);
+  }
+  const arr = await resp.arrayBuffer();
+  const bytes = Buffer.from(arr);
+  if (bytes.length === 0) {
+    throw new Error('openai speech returned zero bytes');
+  }
+  const tag = azure ? 'azure-openai' : 'openai';
+  const noteBits = [`${tag}/${ctx.model}`, voiceId, `${format}`, `${bytes.length} bytes`];
+  if (instructions) noteBits.splice(2, 0, 'styled');
+  return {
+    bytes,
+    providerNote: noteBits.join(' · '),
+    suggestedExt: format === 'opus' ? '.ogg' : `.${format}`,
+  };
 }
 
 // ---------------------------------------------------------------------------
