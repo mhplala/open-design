@@ -820,10 +820,44 @@ export async function startServer({ port = 7456 } = {}) {
     // already locates the executable via PATH, but spawning the bare name here
     // fails on Windows (ENOENT) when the child process's PATH doesn't contain
     // the user's npm-global / shim directory — see issue #10.
-    const resolvedBin = resolveAgentBin(agentId) || def.bin;
+    //
+    // If detection can't find the binary, surface a friendly SSE error
+    // pointing at /api/agents instead of silently falling back to
+    // spawn(def.bin) — that fallback re-introduces the exact ENOENT symptom
+    // from issue #10 the rest of this block is meant to prevent.
+    const resolvedBin = resolveAgentBin(agentId);
+    if (!resolvedBin) {
+      send('error', {
+        message:
+          `Agent "${def.name}" (\`${def.bin}\`) is not installed or not on PATH. ` +
+          'Install it and refresh the agent list (GET /api/agents) before retrying.',
+      });
+      return res.end();
+    }
     // npm shims on Windows are .cmd/.bat files; Node ≥21 refuses to spawn
     // those without `shell: true` (CVE-2024-27980). When `shell: true` is set
-    // on Windows, Node escapes args automatically for the cmd.exe shell.
+    // on Windows, Node escapes argv items for the cmd.exe shell — that
+    // escape is what currently keeps user-controlled prompt text in `args`
+    // (composed via `def.buildArgs(prompt, ...)` above) from being
+    // interpreted as shell metacharacters. Two caveats this leaves on the
+    // table for a future contributor to be aware of:
+    //   1. Defensibility relies on Node's escaper staying correct. The
+    //      stronger fix is to keep user text out of argv entirely by piping
+    //      the composed prompt through child stdin instead of passing it
+    //      as a `-p $prompt`-style flag. Do NOT add a new prompt-bearing
+    //      flag in `buildArgs` thinking shell:true makes it safe — route
+    //      it through stdin instead.
+    //   2. cmd.exe caps the full command line at ~8191 chars (well below
+    //      Node's direct-spawn argv cap), so long prompts can fail with an
+    //      ENAMETOOLONG-class error here. Same mitigation: stdin.
+    //
+    // We only flip shell:true for `.cmd`/`.bat` because those are the only
+    // PATHEXT entries that strictly require cmd.exe to launch. `.exe`/`.com`
+    // launch directly (no shell needed); `.ps1`/`.vbs` etc. would need a
+    // different host (powershell / wscript) — `shell: true` (which uses
+    // cmd.exe) wouldn't actually help those, so we don't pretend it would.
+    // In practice npm-installed CLIs ship as `.cmd` shims, which is the
+    // case this branch covers.
     const useShell =
       process.platform === 'win32' && /\.(cmd|bat)$/i.test(resolvedBin);
 
