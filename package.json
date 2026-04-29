@@ -14,6 +14,7 @@
     "dev": "vite",
     "dev:all": "node scripts/dev-all.mjs",
     "build": "tsc -b && vite build",
+    "test:e2e:live": "node --test scripts/runtime-adapter.e2e.live.test.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b --noEmit",
