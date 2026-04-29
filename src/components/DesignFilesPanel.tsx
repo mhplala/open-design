@@ -314,6 +314,14 @@ function DfPreview({
             preload="metadata"
             controls
           />
+        ) : file.kind === 'audio' ? (
+          <div className="df-preview-audio">
+            <audio
+              src={`${url}?v=${Math.round(file.mtime)}`}
+              preload="metadata"
+              controls
+            />
+          </div>
         ) : file.kind === 'html' ? (
           <iframe title={file.name} src={url} sandbox="allow-scripts" />
         ) : (

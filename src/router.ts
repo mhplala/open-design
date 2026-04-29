@@ -39,12 +39,17 @@ export function buildPath(route: Route): string {
   return `/projects/${id}`;
 }
 
+function currentPathname(): string {
+  if (typeof window === 'undefined') return '/';
+  return window.location.pathname;
+}
+
 // Centralized navigation. Components call this instead of mutating
 // `window.location` directly so we can fan the change out to any
 // `useRoute()` subscriber via a custom event.
 export function navigate(route: Route, opts: { replace?: boolean } = {}): void {
   const target = buildPath(route);
-  const current = window.location.pathname;
+  const current = currentPathname();
   if (target === current) return;
   if (opts.replace) {
     window.history.replaceState(null, '', target);
@@ -55,9 +60,9 @@ export function navigate(route: Route, opts: { replace?: boolean } = {}): void {
 }
 
 export function useRoute(): Route {
-  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.pathname));
+  const [route, setRoute] = useState<Route>(() => parseRoute(currentPathname()));
   useEffect(() => {
-    const onPop = () => setRoute(parseRoute(window.location.pathname));
+    const onPop = () => setRoute(parseRoute(currentPathname()));
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);

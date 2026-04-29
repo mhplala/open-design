@@ -295,8 +295,10 @@ export interface ProjectMetadata {
   // Duration in seconds. Music generators interpret this as song length;
   // TTS uses it as an upper bound on the spoken passage.
   audioDuration?: number;
-  // Free-form voice description for TTS (e.g. "warm female narrator,
-  // British English"). Ignored for music / SFX.
+  // Provider-specific speech voice selector. Some providers expect a
+  // concrete voice id / reference id (e.g. MiniMax `male-qn-qingse`),
+  // while others may accept their own preset handle. Ignored for
+  // music / SFX.
   voice?: string;
   // Imported static-site projects, currently used for Claude Design ZIPs.
   importedFrom?: 'claude-design' | string;

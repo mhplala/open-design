@@ -18,6 +18,10 @@ const isProd = process.env.NODE_ENV !== 'development';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // We often open the dev app via 127.0.0.1 rather than localhost. Next 16
+  // blocks dev resources such as HMR by origin unless explicitly allowed,
+  // which otherwise leaves the shell stuck at the loading screen.
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
   // Keep the bundle output predictable so the daemon's STATIC_DIR can point
   // at it without any glob trickery.
   distDir: isProd ? 'out' : '.next',

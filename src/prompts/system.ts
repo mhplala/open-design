@@ -215,11 +215,11 @@ function renderMetadataBlock(
     if (metadata.voice) {
       lines.push(`- **voice**: ${metadata.voice}`);
     } else if (metadata.audioKind === 'speech') {
-      lines.push('- **voice**: (unknown — ask: voice / accent / pacing)');
+      lines.push('- **voice**: (unknown — ask: voice id / accent / pacing)');
     }
     lines.push('');
     lines.push(
-      'This is an **audio** project. Music: lock genre + tempo + instrumentation. Speech: confirm script + voice + pacing. SFX: be precise about texture (impact, ambience, foley layer). Then dispatch via the **media generation contract** using `od media generate --surface audio --audio-kind <kind> --model <audioModel> --duration <seconds>` (add `--voice <voice-id>` for speech). Do NOT emit `<artifact>` HTML.',
+      'This is an **audio** project. Music: lock genre + tempo + instrumentation. Speech: confirm script + pacing, and use a provider-specific voice id when the model requires one. For `minimax-tts`, `--voice` must be a valid MiniMax `voice_id` such as `male-qn-qingse`; if you only have a prose voice brief, omit `--voice` and let the daemon default apply. SFX: be precise about texture (impact, ambience, foley layer). Then dispatch via the **media generation contract** using `od media generate --surface audio --audio-kind <kind> --model <audioModel> --duration <seconds>` (add `--voice <voice-id>` for speech when you have a valid provider id). Do NOT emit `<artifact>` HTML.',
     );
   }
 

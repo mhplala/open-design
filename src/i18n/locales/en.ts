@@ -168,9 +168,9 @@ export const en: Dict = {
   'newproj.audioKindSfx': 'SFX / foley',
   'newproj.audioDurationLabel': 'Duration',
   'newproj.audioDurationSeconds': '{n}s',
-  'newproj.voiceLabel': 'Voice (TTS only)',
+  'newproj.voiceLabel': 'Voice / ID (TTS only)',
   'newproj.voicePlaceholder':
-    'e.g. warm female narrator, British English, calm pacing',
+    'e.g. MiniMax voice id male-qn-qingse. Leave blank to use the default voice.',
   'newproj.namePlaceholder': 'Project name',
   'newproj.fidelityLabel': 'Fidelity',
   'newproj.fidelityWireframe': 'Wireframe',
