@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../i18n';
+import { DEFAULT_VIDEO_MODEL } from '../media/models';
 import type {
   AgentInfo,
   AppConfig,
@@ -348,7 +349,7 @@ function metadataForSkill(skill: SkillSummary): ProjectMetadata {
   if (kind === 'video') {
     return {
       kind,
-      videoModel: 'seedance-2',
+      videoModel: DEFAULT_VIDEO_MODEL,
       videoLength: 5,
       videoAspect: '16:9',
     };
