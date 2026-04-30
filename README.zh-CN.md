@@ -307,12 +307,15 @@ open-design/
 │
 ├── apps/
 │   ├── daemon/                    ← Node + Express，唯一的服务端
-│   │   ├── cli.js                 ← `od` 二进制入口
-│   │   ├── server.js              ← /api/* 路由（projects、chat、files、exports）
-│   │   ├── agents.js              ← PATH 扫描器 + 各 CLI 的 argv 拼装
-│   │   ├── claude-stream.js       ← Claude Code stdout 流式 JSON 解析
-│   │   ├── skills.js              ← SKILL.md frontmatter 加载器
-│   │   └── db.js                  ← SQLite schema（projects/messages/templates/tabs）
+│   │   ├── src/                   ← TypeScript daemon 源码
+│   │   │   ├── cli.ts             ← `od` bin 源码，编译到 dist/cli.js
+│   │   │   ├── server.ts          ← /api/* 路由（projects、chat、files、exports）
+│   │   │   ├── agents.ts          ← PATH 扫描器 + 各 CLI 的 argv 拼装
+│   │   │   ├── claude-stream.ts   ← Claude Code stdout 流式 JSON 解析
+│   │   │   ├── skills.ts          ← SKILL.md frontmatter 加载器
+│   │   │   └── db.ts              ← SQLite schema（projects/messages/templates/tabs）
+│   │   ├── sidecar/               ← tools-dev daemon sidecar wrapper
+│   │   └── tests/                 ← daemon 包测试
 │   │
 │   └── web/                       ← Next.js 16 App Router + React 客户端
 │       ├── app/                   ← App Router 入口
@@ -327,6 +330,12 @@ open-design/
 │           └── state/             ← localStorage + daemon-backed 项目状态
 │
 ├── e2e/                           ← Playwright UI + 外部集成/Vitest harness
+│
+├── packages/
+│   ├── contracts/                 ← web/daemon 共享 app contracts
+│   ├── sidecar-proto/             ← Open Design sidecar protocol contract
+│   ├── sidecar/                   ← 通用 sidecar runtime primitives
+│   └── platform/                  ← 通用 process/platform primitives
 │
 ├── skills/                        ← 19 个 SKILL.md skill 包
 │   ├── web-prototype/             ← 原型默认

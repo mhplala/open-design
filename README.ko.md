@@ -308,17 +308,20 @@ open-design/
 │
 ├── apps/
 │   ├── daemon/                    ← Node + Express, 유일한 서버
-│   │   ├── cli.js                 ← `od` bin 진입점
-│   │   ├── server.js              ← /api/* 라우트(projects, chat, files, exports)
-│   │   ├── agents.js              ← PATH 스캐너 + CLI별 argv 빌더
-│   │   ├── claude-stream.js       ← Claude Code stdout 스트리밍 JSON 파서
-│   │   ├── skills.js              ← SKILL.md 프론트매터 로더
-│   │   └── db.js                  ← SQLite 스키마(projects/messages/templates/tabs)
+│   │   ├── src/                   ← TypeScript daemon 소스
+│   │   │   ├── cli.ts             ← `od` bin 소스, dist/cli.js로 컴파일
+│   │   │   ├── server.ts          ← /api/* 라우트(projects, chat, files, exports)
+│   │   │   ├── agents.ts          ← PATH 스캐너 + CLI별 argv 빌더
+│   │   │   ├── claude-stream.ts   ← Claude Code stdout 스트리밍 JSON 파서
+│   │   │   ├── skills.ts          ← SKILL.md 프론트매터 로더
+│   │   │   └── db.ts              ← SQLite 스키마(projects/messages/templates/tabs)
+│   │   ├── sidecar/               ← tools-dev daemon sidecar 래퍼
+│   │   └── tests/                 ← daemon 패키지 테스트
 │   │
 │   └── web/                       ← Next.js 16 App Router + React 클라이언트
 │       ├── app/                   ← App Router 진입점
 │       ├── next.config.ts         ← 개발 rewrite + 프로덕션 정적 내보내기 to out/
-│       └── src/                   ← Next.js를 위한 공유 React + TS 클라이언트 모듈
+│       └── src/                   ← React + TypeScript 클라이언트 모듈
 │           ├── App.tsx            ← 라우팅, 부트스트랩, 설정
 │           ├── components/        ← 채팅, 작성기, 선택기, 미리보기, 스케치, …
 │           ├── prompts/
@@ -331,6 +334,12 @@ open-design/
 │           └── state/             ← config + 프로젝트(localStorage + daemon 백업)
 │
 ├── e2e/                           ← Playwright UI + 외부 통합/Vitest 하네스
+│
+├── packages/
+│   ├── contracts/                 ← 공유 web/daemon app contracts
+│   ├── sidecar-proto/             ← Open Design sidecar protocol contract
+│   ├── sidecar/                   ← generic sidecar runtime primitives
+│   └── platform/                  ← generic process/platform primitives
 │
 ├── skills/                        ← 19개 SKILL.md skill 번들
 │   ├── web-prototype/             ← prototype 모드 기본

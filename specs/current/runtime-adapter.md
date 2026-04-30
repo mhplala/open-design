@@ -279,5 +279,5 @@ The current implementation already has the core outline of the target architectu
 - `detectAgents()` corresponds to `detect()`.
 - `AGENT_DEFS` corresponds to the adapter registry.
 - `buildArgs()` corresponds to runtime-specific invocation.
-- `streamFormat` + `claude-stream.js` + `json-event-stream.js` + `acp.js` correspond to stream normalization.
+- `streamFormat` + `claude-stream.ts` + `json-event-stream.ts` + `acp.ts` correspond to stream normalization.
 - `/api/chat` corresponds to unified run orchestration.

@@ -307,17 +307,20 @@ open-design/
 │
 ├── apps/
 │   ├── daemon/                    ← Node + Express, the only server
-│   │   ├── cli.js                 ← `od` bin entry point
-│   │   ├── server.js              ← /api/* routes (projects, chat, files, exports)
-│   │   ├── agents.js              ← PATH scanner + per-CLI argv builders
-│   │   ├── claude-stream.js       ← streaming JSON parser for Claude Code stdout
-│   │   ├── skills.js              ← SKILL.md frontmatter loader
-│   │   └── db.js                  ← SQLite schema (projects/messages/templates/tabs)
+│   │   ├── src/                   ← TypeScript daemon source
+│   │   │   ├── cli.ts             ← `od` bin source, compiled to dist/cli.js
+│   │   │   ├── server.ts          ← /api/* routes (projects, chat, files, exports)
+│   │   │   ├── agents.ts          ← PATH scanner + per-CLI argv builders
+│   │   │   ├── claude-stream.ts   ← streaming JSON parser for Claude Code stdout
+│   │   │   ├── skills.ts          ← SKILL.md frontmatter loader
+│   │   │   └── db.ts              ← SQLite schema (projects/messages/templates/tabs)
+│   │   ├── sidecar/               ← tools-dev daemon sidecar wrapper
+│   │   └── tests/                 ← daemon package tests
 │   │
 │   └── web/                       ← Next.js 16 App Router + React client
 │       ├── app/                   ← App Router entrypoints
 │       ├── next.config.ts         ← dev rewrites + prod static export to out/
-│       └── src/                   ← shared React + TS client modules for Next.js
+│       └── src/                   ← React + TypeScript client modules
 │           ├── App.tsx            ← routing, bootstrap, settings
 │           ├── components/        ← chat, composer, picker, preview, sketch, …
 │           ├── prompts/
@@ -330,6 +333,12 @@ open-design/
 │           └── state/             ← config + projects (localStorage + daemon-backed)
 │
 ├── e2e/                           ← Playwright UI + external integration/Vitest harness
+│
+├── packages/
+│   ├── contracts/                 ← shared web/daemon app contracts
+│   ├── sidecar-proto/             ← Open Design sidecar protocol contract
+│   ├── sidecar/                   ← generic sidecar runtime primitives
+│   └── platform/                  ← generic process/platform primitives
 │
 ├── skills/                        ← 19 SKILL.md skill bundles
 │   ├── web-prototype/             ← default for prototype mode

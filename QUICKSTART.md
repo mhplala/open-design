@@ -125,7 +125,7 @@ open-design/
 │   │   └── tests/             # daemon package tests
 │   ├── web/                   # Next.js 16 App Router + React client
 │       ├── app/               # App Router entrypoints
-│       ├── src/               # shared React + TypeScript client/runtime modules
+│       ├── src/               # React + TypeScript client/runtime modules
 │       │   ├── App.tsx        # orchestrates mode / skill / DS pickers + send
 │       │   ├── providers/     # daemon + BYOK API transports
 │       │   ├── prompts/       # system, discovery, directions, deck framework
