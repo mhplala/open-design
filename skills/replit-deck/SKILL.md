@@ -74,16 +74,124 @@ replit-deck/
 
 ## Workflow
 
-### Step 0 — Pre-flight (mandatory reads)
+### Step 0 — Theme picker (REQUIRED first turn — overrides general discovery rules)
+
+The eight Replit-Slides themes are not interchangeable; each is a complete visual system that touches palette, font stack, layout posture, and tone. Picking the wrong one is the single biggest cause of regressions in this skill. So **before any tool use, before reading any file, before TodoWrite**, your very first output is the theme-picker form below — unless one of the explicit skip cases applies.
+
+**Skip ONLY if:**
+- The user already declared a theme by name in their brief ("a helix-style board update", "use bluehouse"), OR
+- The conversation already contains a `[form answers — replit-theme]` message, OR
+- The latest message starts with `[form answers — replit-theme]`.
+
+Otherwise emit this verbatim, then stop your turn:
+
+```
+<question-form id="replit-theme" title="Pick a Replit Slides theme" submitLabel="Use this theme">
+{
+  "description": "Each is a complete visual system. The whole deck uses one theme's tokens — no mixing.",
+  "questions": [
+    {
+      "id": "theme",
+      "label": "Theme",
+      "type": "direction-cards",
+      "required": true,
+      "options": ["helix", "holm", "vance", "bevel", "world-dark", "world-mint", "atlas", "bluehouse"],
+      "cards": [
+        {
+          "id": "helix",
+          "label": "Helix — Modern Minimal",
+          "mood": "Light grey background, electric blue accent. Clean grids, mono numerics. Built for SaaS metrics, product board updates, neutral modern.",
+          "references": ["Linear dashboard", "Stripe annual report", "Vercel briefings"],
+          "palette": ["#fafafa", "#19191c", "#5889fe", "#6e6e73", "#e4e4e7"],
+          "displayFont": "-apple-system, 'Inter Display', system-ui, sans-serif",
+          "bodyFont": "-apple-system, 'Inter', system-ui, sans-serif"
+        },
+        {
+          "id": "holm",
+          "label": "Holm — Editorial Serif",
+          "mood": "Cream background, deep chestnut accent, large serif display. Reads like a legal memo or investor pre-read — quiet, institutional, dignified.",
+          "references": ["Wachtell legal memo", "Bridgewater quarterly", "FT Weekend pre-read"],
+          "palette": ["#e4dfd7", "#0f0f0e", "#52311d", "#7c7e84", "#c7c1b7"],
+          "displayFont": "'Iowan Old Style', 'Charter', Georgia, serif",
+          "bodyFont": "-apple-system, 'Inter', system-ui, sans-serif"
+        },
+        {
+          "id": "vance",
+          "label": "Vance — Gallery Catalog",
+          "mood": "Cream / black bars, serif over plates, zero ornament. Built for art portfolios, design studios, photographer / sculptor showcases.",
+          "references": ["Wallpaper magazine", "Apartamento", "Hauser & Wirth catalog"],
+          "palette": ["#f1ede2", "#171815", "#171815", "#6e6b62", "#d6d2c5"],
+          "displayFont": "'Iowan Old Style', 'Charter', Georgia, serif",
+          "bodyFont": "-apple-system, 'Inter', system-ui, sans-serif"
+        },
+        {
+          "id": "bevel",
+          "label": "Bevel — Y2K Editorial",
+          "mood": "Black canvas, neon-yellow outline, condensed display type, dashed framing. Fashion campaign / lookbook attitude — intentionally loud.",
+          "references": ["Diesel SS26 lookbook", "Jacquemus deck", "032c magazine"],
+          "palette": ["#0d0d0b", "#eae6dd", "#c8ff00", "#a29e95", "#2a2a28"],
+          "displayFont": "'Antonio', 'Bebas Neue', Impact, sans-serif",
+          "bodyFont": "-apple-system, 'Inter', system-ui, sans-serif"
+        },
+        {
+          "id": "world-dark",
+          "label": "World Dark — Finance Report",
+          "mood": "Deep forest green, neon-yellow data accent. Premium dark dashboard for policy reports, finance analyses, central-bank reads.",
+          "references": ["Bridgewater Daily Observations", "Pictet quarterly", "BlackRock investment outlook"],
+          "palette": ["#0d3a2b", "#bcd6cd", "#e8f615", "#789f91", "#1d4c3c"],
+          "displayFont": "-apple-system, 'Inter Display', system-ui, sans-serif",
+          "bodyFont": "-apple-system, 'Inter', system-ui, sans-serif"
+        },
+        {
+          "id": "world-mint",
+          "label": "World Mint — Light Sustainability",
+          "mood": "Mint background, deep-green ink, neon-yellow accent. Lighter cousin of World Dark — ESG, wellness finance, sustainability narratives.",
+          "references": ["Patagonia annual benefit report", "Allbirds sustainability", "B Corp impact decks"],
+          "palette": ["#bcd6cd", "#0d3a2b", "#e8f615", "#527567", "#9abbac"],
+          "displayFont": "-apple-system, 'Inter Display', system-ui, sans-serif",
+          "bodyFont": "-apple-system, 'Inter', system-ui, sans-serif"
+        },
+        {
+          "id": "atlas",
+          "label": "Atlas — Museum Narrative",
+          "mood": "Black with vermilion serif accent. Long-form narrative chapter deck, museum or archive aesthetic — built to be read.",
+          "references": ["Met Museum chapter deck", "Princeton University Press", "Phaidon archive"],
+          "palette": ["#111010", "#e7e6e2", "#de3f40", "#827d78", "#2a2826"],
+          "displayFont": "'Iowan Old Style', 'Charter', Georgia, serif",
+          "bodyFont": "-apple-system, 'Inter', system-ui, sans-serif"
+        },
+        {
+          "id": "bluehouse",
+          "label": "Bluehouse — Consumer Cards",
+          "mood": "Deep navy with peach → coral gradient cards. Real estate, lifestyle product showcase, consumer brand decks — colorful but composed.",
+          "references": ["Compass listing book", "Sotheby's portfolio", "Airbnb host deck"],
+          "palette": ["#0b1524", "#ffffff", "#fb675d", "#ff8f68", "#1a2c46"],
+          "displayFont": "-apple-system, 'Inter Display', system-ui, sans-serif",
+          "bodyFont": "-apple-system, 'Inter', system-ui, sans-serif"
+        }
+      ]
+    }
+  ]
+}
+</question-form>
+```
+
+After `</question-form>`, **stop your turn**. Do not Read, do not Bash, do not TodoWrite. Wait for the user to submit.
+
+When the user replies (the message starts with `[form answers — replit-theme]`), the chosen theme id is your answer. Bind it as `<body data-theme="<id>">` in Step 3 below. Move on to Step 1 (pre-flight reads).
+
+### Step 1 — Pre-flight (mandatory reads, after theme is locked)
 
 1. Read `assets/template.html` end-to-end. The `[data-theme]` blocks carry the tokens; the `<script>` at the bottom solves five iframe nav bugs — **do not rewrite it**.
-2. Read `references/themes.md` → pick **one** theme that matches the user's brief. If the user already picked a theme via `od.inputs.theme`, use that.
+2. Read `references/themes.md` → confirm the theme's do/don't and best-fit layouts.
 3. Read `references/layouts.md` → you'll copy `<section>` blocks from here.
 4. Read `references/checklist.md` → P0 must pass before emit.
 
-### Step 1 — Commit to one theme
+### Step 2 — Confirm theme + write the plan
 
-Write out loud (in the TodoWrite or plan section) which theme and why. Once picked, **every slide uses that theme's tokens only**. No swapping mid-deck. The `<body data-theme="helix">` attribute is the single source of truth.
+The theme is already locked from the form answer (or from the user's explicit name in their brief). Confirm it in one sentence in the TodoWrite or plan section: *"Going with `helix` because the user asked for a board update with metrics."* Once committed, **every slide uses that theme's tokens only**. No swapping mid-deck. The `<body data-theme="helix">` attribute is the single source of truth.
+
+Quick reminder of when each theme fits (use this only as a sanity check against the form answer):
 
 | Theme | Pick when |
 |---|---|
@@ -96,7 +204,7 @@ Write out loud (in the TodoWrite or plan section) which theme and why. Once pick
 | `atlas` | Long-form narrative, chapter deck, museum / archive aesthetic |
 | `bluehouse` | Consumer product, real estate, lifestyle, colorful cards |
 
-### Step 2 — Plan slide rhythm before writing HTML
+### Step 3 — Plan slide rhythm before writing HTML
 
 Default 6 slides. Write the rhythm BEFORE any HTML, for example (helix, 6 slides):
 
@@ -111,20 +219,20 @@ Default 6 slides. Write the rhythm BEFORE any HTML, for example (helix, 6 slides
 
 Show this to the user. Redirecting at this stage is cheap.
 
-### Step 3 — Copy seed, bind theme
+### Step 4 — Copy seed, bind theme
 
 1. Copy `assets/template.html` to project root as `index.html`.
 2. Set `<body data-theme="<chosen>">`.
 3. Replace `<title>`.
 4. Delete the placeholder slides in the body (the seed ships with 3 demo slides). Keep the chrome (counter / progress / hint).
 
-### Step 4 — Paste layouts, fill real copy
+### Step 5 — Paste layouts, fill real copy
 
 For each planned slide, copy the matching `<section>` from `references/layouts.md`. Replace every `[REPLACE]` with specific copy — never leave placeholders, never use lorem. If a slide feels empty, pick a different layout.
 
 Tag each slide with `data-screen-label="01 Cover"`, `"02 Metrics"`, etc., in presentation order.
 
-### Step 5 — Self-check
+### Step 6 — Self-check
 
 Run `references/checklist.md` silently before emit: the **P0 theme-lock gate** plus the five-dimension 1–5 critique (Philosophy / Hierarchy / Execution / Specificity / Restraint). Any dimension ≤ 3 → re-do before emit.
 
@@ -136,7 +244,7 @@ grep -E 'data-theme|style="--' index.html | head
 
 If any `style="--accent:..."` or theme override appears on individual slides, revert. One theme per deck.
 
-### Step 6 — Emit artifact
+### Step 7 — Emit artifact
 
 ```
 <artifact identifier="deck-<slug>" type="text/html" title="<Deck title>">
