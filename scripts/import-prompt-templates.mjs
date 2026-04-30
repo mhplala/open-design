@@ -222,9 +222,28 @@ function extractFirstImage(body) {
 }
 
 function extractVideoLink(body) {
-  // Releases-hosted .mp4 download link
-  const m = /href=["']([^"']+\.mp4)["']/.exec(body);
-  if (m) return m[1];
+  // 1) Featured entries embed an explicit "<a href=...releases/.../<id>.mp4">"
+  //    download link — prefer it. GitHub releases are stable and don't
+  //    rely on a per-request signed redirect. Catches all 6 featured
+  //    prompts in awesome-seedance-2-prompts.
+  const releaseLink = /href=["']([^"']+\.mp4)["']/.exec(body);
+  if (releaseLink) return releaseLink[1];
+  // 2) All-prompts entries don't expose a static mp4 — they only embed
+  //    the Cloudflare Stream thumbnail. Reconstruct the playable mp4
+  //    from the Stream video id encoded in the thumbnail URL. The
+  //    /downloads/default.mp4 endpoint 302s to a freshly-signed CDN
+  //    URL on every request; the browser follows that transparently
+  //    when set as <video src>. CORS is permissive (`*` on origin)
+  //    and `accept-ranges: bytes` is honored, so seeking works too.
+  //    This is what unlocks an actual video preview for the other
+  //    ~30 sampled templates instead of a static thumbnail.
+  const streamThumb =
+    /https?:\/\/([a-z0-9-]+\.cloudflarestream\.com)\/([a-f0-9]{20,})\/thumbnails\/thumbnail\.jpg/i.exec(
+      body,
+    );
+  if (streamThumb) {
+    return `https://${streamThumb[1]}/${streamThumb[2]}/downloads/default.mp4`;
+  }
   return null;
 }
 

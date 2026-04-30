@@ -9,6 +9,7 @@
   "aspect": "16:9",
   "prompt": "create a walking animation for this hunched over character. the character stays in place",
   "previewImageUrl": "https://customer-qs6wnyfuv0gcybzj.cloudflarestream.com/d3d5dcaf102414a8cceca23d60b5c0d0/thumbnails/thumbnail.jpg",
+  "previewVideoUrl": "https://customer-qs6wnyfuv0gcybzj.cloudflarestream.com/d3d5dcaf102414a8cceca23d60b5c0d0/downloads/default.mp4",
   "source": {
     "repo": "YouMind-OpenLab/awesome-seedance-2-prompts",
     "license": "CC-BY-4.0",

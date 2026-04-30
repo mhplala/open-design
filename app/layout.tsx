@@ -19,9 +19,17 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  // `suppressHydrationWarning` only on <html> and <body>: browser
+  // extensions (Sogapaper, wallet extensions like MetaMask / Phantom,
+  // password managers, etc.) routinely inject attributes onto the
+  // root document elements before React can hydrate, which trips
+  // React's hydration-mismatch warning even though our render is
+  // pristine. The flag is scoped to these two elements only — actual
+  // mismatches deeper in the tree still warn normally. This is the
+  // approach Next.js itself recommends.
   return (
-    <html lang='en'>
-      <body>
+    <html lang='en' suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <I18nProvider>{children}</I18nProvider>
       </body>
     </html>
