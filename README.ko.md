@@ -22,7 +22,7 @@
 
 Anthropic의 [Claude Design][cd](2026-04-17 출시, Opus 4.7 기반)은 LLM이 장문의 글쓰기를 멈추고 디자인 산출물을 직접 내놓기 시작했을 때 어떤 일이 일어나는지 보여주었습니다. 순식간에 화제가 되었지만, 여전히 **클로즈드 소스**, 유료, 클라우드 전용, Anthropic 모델과 Anthropic 내부 skill에 종속된 상태입니다. 체크아웃도, 자가 호스팅도, Vercel 배포도, 에이전트 교체도 불가능합니다.
 
-**Open Design(OD)은 그 오픈소스 대안입니다.** 동일한 루프, 동일한 '아티팩트 우선' 사고방식, 락인 없음. 에이전트를 직접 만들지 않습니다 — 가장 강력한 코딩 에이전트는 이미 여러분의 노트북에 있습니다. 우리는 그것을 skill 기반 디자인 워크플로에 연결할 뿐입니다. 로컬에서는 `pnpm dev:all`로 실행하고, 웹 레이어는 Vercel에 배포할 수 있으며, 모든 레이어에서 BYOK(자체 키 사용)가 가능합니다.
+**Open Design(OD)은 그 오픈소스 대안입니다.** 동일한 루프, 동일한 '아티팩트 우선' 사고방식, 락인 없음. 에이전트를 직접 만들지 않습니다 — 가장 강력한 코딩 에이전트는 이미 여러분의 노트북에 있습니다. 우리는 그것을 skill 기반 디자인 워크플로에 연결할 뿐입니다. 로컬에서는 `pnpm tools-dev`로 실행하고, 웹 레이어는 Vercel에 배포할 수 있으며, 모든 레이어에서 BYOK(자체 키 사용)가 가능합니다.
 
 `시드 라운드를 위한 매거진 스타일 피치덱 만들어줘`라고 입력하세요. 모델이 픽셀 하나 그리기 전에 **초기화 질문 폼**이 먼저 등장합니다. 에이전트는 5개의 엄선된 시각적 방향 중 하나를 선택합니다. 실시간 `TodoWrite` 계획 카드가 UI에 스트리밍됩니다. Daemon이 디스크에 실제 프로젝트 폴더를 생성하며, seed 템플릿, 레이아웃 라이브러리, 자가 점검 체크리스트가 포함됩니다. 에이전트는 **pre-flight를 강제**로 읽고, 자신의 출력물에 대해 **5차원 검토**를 실행하며, 몇 초 후 샌드박스 iframe에 렌더링되는 단일 `<artifact>`를 내보냅니다.
 
@@ -45,7 +45,7 @@ OD는 네 개의 오픈소스 프로젝트 어깨 위에 서 있습니다:
 | **시각적 방향** | 5개의 엄선된 학파(Editorial Monocle · Modern Minimal · Tech Utility · Brutalist · Soft Warm) — 각각 결정론적 OKLch 팔레트 + 폰트 스택 제공 |
 | **기기 프레임** | iPhone 15 Pro · Pixel · iPad Pro · MacBook · Browser Chrome — 픽셀 정확도, 스킬 간 공유 |
 | **에이전트 런타임** | 로컬 daemon이 프로젝트 폴더에서 CLI를 실행 — 에이전트가 실제 디스크 환경에 대한 실제 `Read`, `Write`, `Bash`, `WebFetch` 도구를 사용 |
-| **배포 대상** | 로컬(`pnpm dev:all`) · Vercel 웹 레이어 · 단일 프로세스 프로덕션(`pnpm start`) |
+| **배포 대상** | 로컬(`pnpm tools-dev`) · Vercel 웹 레이어 · daemon 정적 서빙 프로덕션 |
 | **라이선스** | Apache-2.0 |
 
 [acd2]: https://github.com/VoltAgent/awesome-design-md
@@ -262,8 +262,8 @@ cd open-design
 corepack enable
 corepack pnpm --version   # 10.33.2가 출력되어야 합니다
 pnpm install
-pnpm dev:all         # daemon (:7456) + Next dev (:3000)
-open http://localhost:3000
+pnpm tools-dev run web  # daemon + web foreground
+# tools-dev가 출력한 web URL을 여세요
 ```
 
 환경 요구사항: Node `~24`와 pnpm `10.33.x`. `nvm`/`fnm`은 선택적 보조 도구일 뿐입니다; 사용한다면 `pnpm install` 전에 `nvm install 24 && nvm use 24` 또는 `fnm install 24 && fnm use 24`를 실행하세요.
@@ -291,7 +291,7 @@ Daemon은 저장소 루트에 하나의 숨겨진 폴더를 소유합니다. 그
 | 원하는 작업 | 방법 |
 |---|---|
 | 내용 확인 | `ls -la .od && sqlite3 .od/app.sqlite '.tables'` |
-| 초기 상태로 재설정 | daemon 중지, `rm -rf .od`, `pnpm dev:all` 재실행 |
+| 초기 상태로 재설정 | `pnpm tools-dev stop`, `rm -rf .od`, `pnpm tools-dev run web` 재실행 |
 | 다른 위치로 이동 | 아직 지원되지 않음 — 경로가 저장소 상대 경로로 하드코딩됨 |
 
 전체 파일 맵, 스크립트, 트러블슈팅 → [`QUICKSTART.md`](QUICKSTART.md).
@@ -374,7 +374,7 @@ open-design/
 │   └── deck-framework.html        ← 덱 기준선(nav / counter / print)
 │
 ├── scripts/
-│   └── sync-design-systems.mjs    ← 상위 awesome-design-md tarball 재가져오기
+│   └── sync-design-systems.ts     ← 상위 awesome-design-md tarball 재가져오기
 │
 ├── docs/
 │   ├── spec.md                    ← 제품 스펙, 시나리오, 차별화
@@ -424,7 +424,7 @@ open-design/
 
 </details>
 
-라이브러리는 [`scripts/sync-design-systems.mjs`](scripts/sync-design-systems.mjs)를 통해 [`VoltAgent/awesome-design-md`][acd2]에서 가져옵니다. 재실행하면 새로 고침됩니다.
+라이브러리는 [`scripts/sync-design-systems.ts`](scripts/sync-design-systems.ts)를 통해 [`VoltAgent/awesome-design-md`][acd2]에서 가져옵니다. 재실행하면 새로 고침됩니다.
 
 ## 시각적 방향
 
@@ -496,7 +496,7 @@ daemon 부팅 시 `PATH`에서 자동 감지됩니다. 설정 필요 없음.
 | [GitHub Copilot CLI](https://github.com/features/copilot/cli) | `copilot` | `--output-format json` (타입 이벤트) | `copilot -p <prompt> --allow-all-tools --output-format json` |
 | Anthropic API · BYOK | n/a | SSE 직접 | PATH에 CLI가 없을 때 브라우저 폴백 |
 
-새 CLI 추가는 [`apps/daemon/agents.js`](apps/daemon/agents.js)에 항목 하나 추가하는 것입니다. 스트리밍 형식은 `claude-stream-json`(타입 이벤트) 또는 `plain`(원시 텍스트) 중 하나입니다.
+새 CLI 추가는 [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts)에 항목 하나 추가하는 것입니다. 스트리밍 형식은 `claude-stream-json`(타입 이벤트) 또는 `plain`(원시 텍스트) 중 하나입니다.
 
 ## 참조 및 계보
 
@@ -509,7 +509,7 @@ daemon 부팅 시 `PATH`에서 자동 감지됩니다. 설정 필요 없음.
 | [**`op7418/guizang-ppt-skill`**][guizang] | [`skills/guizang-ppt/`](skills/guizang-ppt/) 아래에 원본 그대로 번들된 Magazine-web-PPT skill, 원 LICENSE 보존. 덱 모드 기본. P0/P1/P2 체크리스트 문화는 다른 모든 skill에도 차용됩니다. |
 | [**`multica-ai/multica`**](https://github.com/multica-ai/multica) | Daemon + 어댑터 아키텍처. PATH 스캔 에이전트 감지, 단일 특권 프로세스로서의 로컬 daemon, 에이전트-동료 세계관. 모델을 채용했지만 코드는 vendor하지 않습니다. |
 | [**`OpenCoworkAI/open-codesign`**][ocod] | 최초의 오픈소스 Claude-Design 대안이자 가장 가까운 동류. 채택된 UX 패턴: 스트리밍 아티팩트 루프, 샌드박스 iframe 미리보기(React 18 + Babel 내장), 실시간 에이전트 패널(todos + tool calls + 중단 가능), 5가지 내보내기 형식(HTML/PDF/PPTX/ZIP/Markdown), 로컬 우선 스토리지 허브, `SKILL.md` 취향 주입. 로드맵의 UX 패턴: 코멘트 모드 수술적 편집, AI 제안 트윅 패널. **[`pi-ai`][piai]는 의도적으로 vendor하지 않습니다** — open-codesign은 이를 에이전트 런타임으로 번들링하지만; 우리는 사용자가 이미 가진 CLI에 위임합니다. |
-| [`VoltAgent/awesome-claude-design`][acd] / [`awesome-design-md`][acd2] | 9섹션 `DESIGN.md` 스키마의 출처이자 [`scripts/sync-design-systems.mjs`](scripts/sync-design-systems.mjs)를 통해 가져온 69개 제품 시스템. |
+| [`VoltAgent/awesome-claude-design`][acd] / [`awesome-design-md`][acd2] | 9섹션 `DESIGN.md` 스키마의 출처이자 [`scripts/sync-design-systems.ts`](scripts/sync-design-systems.ts)를 통해 가져온 69개 제품 시스템. |
 | [`farion1231/cc-switch`](https://github.com/farion1231/cc-switch) | 여러 에이전트 CLI에 걸친 심링크 기반 skill 배포의 영감. |
 | [Claude Code skills][skill] | 원본 그대로 채택된 `SKILL.md` 규약 — 모든 Claude Code skill이 `skills/`에 드롭되면 daemon이 감지합니다. |
 
@@ -547,7 +547,7 @@ daemon 부팅 시 `PATH`에서 자동 감지됩니다. 설정 필요 없음.
 
 - **skill 추가** — [`SKILL.md`][skill] 규약을 따르는 폴더를 [`skills/`](skills/)에 드롭하세요.
 - **디자인 시스템 추가** — 9섹션 스키마를 사용하여 [`design-systems/<brand>/`](design-systems/)에 `DESIGN.md`를 드롭하세요.
-- **새 코딩 에이전트 CLI 연결** — [`apps/daemon/agents.js`](apps/daemon/agents.js)에 항목 하나 추가.
+- **새 코딩 에이전트 CLI 연결** — [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts)에 항목 하나 추가.
 
 전체 설명, 병합 기준, 코드 스타일, 받지 않는 것 → [`CONTRIBUTING.md`](CONTRIBUTING.md) ([简体中文](CONTRIBUTING.zh-CN.md)).
 

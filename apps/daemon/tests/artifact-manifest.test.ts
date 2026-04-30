@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateArtifactManifestInput } from './artifact-manifest.js';
+import { validateArtifactManifestInput } from '../src/artifact-manifest.js';
 
 function validBase() {
   return {

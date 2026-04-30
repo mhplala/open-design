@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { createJsonEventStreamHandler } from './json-event-stream.js';
+import { createJsonEventStreamHandler } from '../src/json-event-stream.js';
 
 test('opencode json stream emits text and usage events', () => {
   const events = [];

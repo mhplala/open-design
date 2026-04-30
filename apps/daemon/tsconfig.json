@@ -10,6 +10,7 @@
     "allowJs": false,
     "checkJs": false,
     "outDir": "dist",
+    "rootDir": "src",
     "declaration": true,
     "sourceMap": true,
     "isolatedModules": true,
@@ -20,8 +21,8 @@
     "types": ["node", "vitest"]
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx"
+    "src/**/*.ts",
+    "src/**/*.tsx"
   ],
   "exclude": ["node_modules", "dist"]
 }

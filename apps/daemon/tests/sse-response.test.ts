@@ -2,7 +2,7 @@
 import { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createCompatApiErrorResponse, createSseResponse } from './server.js';
+import { createCompatApiErrorResponse, createSseResponse } from '../src/server.js';
 
 afterEach(() => {
   vi.useRealTimers();

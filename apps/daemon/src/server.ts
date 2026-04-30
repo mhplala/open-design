@@ -846,7 +846,7 @@ export async function startServer({ port = 7456, returnServer = false } = {}) {
   // Project files. Each project owns a flat folder under .od/projects/<id>/
   // containing every file the user has uploaded, pasted, sketched, or that
   // the agent has generated. Names are sanitized; paths are confined to the
-  // project's own folder (see apps/daemon/projects.js).
+  // project's own folder (see apps/daemon/src/projects.ts).
   app.get('/api/projects/:id/files', async (req, res) => {
     try {
       const files = await listFiles(PROJECTS_DIR, req.params.id);

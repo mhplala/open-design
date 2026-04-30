@@ -15,8 +15,20 @@ const skippedDirectories = new Set([
   ".od-e2e",
   ".opencode",
   ".task",
+  ".tmp",
   ".vite",
+  "dist",
   "node_modules",
+  "out",
+]);
+
+const allowedExactPaths = new Set([
+  "packages/platform/esbuild.config.mjs",
+  "packages/sidecar/esbuild.config.mjs",
+  "packages/sidecar-proto/esbuild.config.mjs",
+  "scripts/postinstall.mjs",
+  "tools/dev/bin/tools-dev.mjs",
+  "tools/dev/esbuild.config.mjs",
 ]);
 
 const allowedPathPrefixes = [
@@ -37,7 +49,12 @@ function toRepositoryPath(filePath: string): string {
 }
 
 function isAllowedOutputPath(repositoryPath: string): boolean {
+  if (allowedExactPaths.has(repositoryPath)) return true;
   return allowedPathPrefixes.some((prefix) => repositoryPath.startsWith(prefix));
+}
+
+function isSkippedDirectoryName(directoryName: string): boolean {
+  return skippedDirectories.has(directoryName) || directoryName === ".next" || directoryName.startsWith(".next-");
 }
 
 async function collectResidualJavaScript(directory: string): Promise<string[]> {
@@ -49,7 +66,7 @@ async function collectResidualJavaScript(directory: string): Promise<string[]> {
     const repositoryPath = toRepositoryPath(fullPath);
 
     if (entry.isDirectory()) {
-      if (skippedDirectories.has(entry.name) || isAllowedOutputPath(`${repositoryPath}/`)) {
+      if (isSkippedDirectoryName(entry.name) || isAllowedOutputPath(`${repositoryPath}/`)) {
         continue;
       }
 

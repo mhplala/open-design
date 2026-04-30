@@ -2,6 +2,8 @@ node_modules/
 dist/
 out/
 .next/
+.next-*/
+.tmp/
 .DS_Store
 *.log
 .vite
