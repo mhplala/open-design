@@ -36,6 +36,7 @@ const MEDIA_GENERATE_STRING_FLAGS = new Set([
   'duration',
   'voice',
   'audio-kind',
+  'composition-dir',
   'daemon-url',
 ]);
 const MEDIA_GENERATE_BOOLEAN_FLAGS = new Set([
@@ -160,6 +161,11 @@ async function runMedia(args) {
     aspect: flags.aspect,
     voice: flags.voice,
     audioKind: flags['audio-kind'],
+    // Only consumed by `--model hyperframes-html`. Project-relative
+    // path the agent has already populated with hyperframes.json /
+    // meta.json / index.html. Daemon validates it stays inside the
+    // project before invoking npx.
+    compositionDir: flags['composition-dir'],
   };
   if (flags.length != null) body.length = Number(flags.length);
   if (flags.duration != null) body.duration = Number(flags.duration);
@@ -169,7 +175,17 @@ async function runMedia(args) {
   try {
     resp = await fetch(url, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        // Opt into Server-Sent Events so the daemon can stream
+        // per-line render progress back to us during long-running
+        // generations (HyperFrames in particular: 60–120s of frame
+        // capture). We forward each progress line to stderr so the
+        // agent's shell tool prints them in the chat in real time —
+        // without this, the user sees a silent spinner for the whole
+        // render and assumes the call has hung.
+        accept: 'text/event-stream, application/json;q=0.9',
+      },
       body: JSON.stringify(body),
     });
   } catch (err) {
@@ -203,22 +219,46 @@ async function runMedia(args) {
     }
     process.exit(3);
   }
-  const text = await resp.text();
-  if (!resp.ok) {
-    console.error(`daemon ${resp.status}: ${text}`);
-    process.exit(4);
+  const contentType = resp.headers.get('content-type') || '';
+  let parsed = null;
+  let rawBody = '';
+
+  if (contentType.includes('text/event-stream')) {
+    // Streaming response. Pipe `progress` events to stderr line by line
+    // so the agent's chat shows live render progress. Capture the
+    // single `result` event (or `error` event) for the JSON we hand
+    // back on stdout / use to set the exit code.
+    const result = await consumeEventStream(resp, (line) => {
+      // Forward HF's progress lines verbatim. They're already short
+      // (HF strips its own progress bar to a single "Capturing frame
+      // X/N" form once we strip ANSI on the daemon side).
+      process.stderr.write(line + '\n');
+    });
+    if (result.kind === 'error') {
+      const status = typeof result.status === 'number' ? result.status : resp.status;
+      console.error(`daemon ${status}: ${result.error || 'unknown error'}`);
+      process.exit(4);
+    }
+    parsed = result.payload;
+    rawBody = JSON.stringify(parsed);
+  } else {
+    rawBody = await resp.text();
+    if (!resp.ok) {
+      console.error(`daemon ${resp.status}: ${rawBody}`);
+      process.exit(4);
+    }
+    try {
+      parsed = JSON.parse(rawBody);
+    } catch {
+      parsed = null;
+    }
   }
+
   // The daemon sometimes "succeeds" by writing a stub fallback after the
   // real provider call failed (so the agent's chat loop doesn't dead-end).
   // Inspect the response and shout the failure on stderr so a code agent
   // sees it clearly: stdout stays a single JSON line for parsing, stderr
   // carries the human-readable warning that maps onto a chat warning.
-  let parsed;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    parsed = null;
-  }
   const file = parsed && parsed.file;
   const warnings = file && Array.isArray(file.warnings) ? file.warnings : [];
   for (const warning of warnings) {
@@ -237,12 +277,122 @@ async function runMedia(args) {
     );
   }
   // Print the JSON response as one line so the agent can parse it.
-  process.stdout.write(text.trim() + '\n');
+  process.stdout.write(rawBody.trim() + '\n');
   if (file && file.providerError) {
     // Exit non-zero so shells/agents that gate on $? notice. We use 5
     // (distinct from 1-4 above) to mean "daemon ok, provider failed".
     process.exit(5);
   }
+}
+
+/**
+ * Consume a Server-Sent Events response body and dispatch named events.
+ *
+ * We only care about three event names:
+ *   - `progress` → call `onProgress(line)` for each emitted line
+ *   - `result`   → resolve with the final `{file: {...}}` payload
+ *   - `error`    → resolve with `{kind: 'error', error, status}` so the
+ *                  caller can map it to an exit code
+ *
+ * Any unrecognised event name is ignored. SSE comments (lines starting
+ * with `:`) are also ignored — the daemon emits them every 5s as
+ * heartbeats so middleboxes don't drop the long-lived connection.
+ */
+async function consumeEventStream(resp, onProgress) {
+  if (!resp.body) {
+    return { kind: 'error', error: 'daemon returned no body for streamed request' };
+  }
+  // undici's `body` exposes a Web ReadableStream; getReader() gives us
+  // chunked Uint8Arrays we can decode incrementally.
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buf = '';
+  let pendingEvent = null;
+  let pendingDataLines = [];
+
+  const flushEvent = () => {
+    if (pendingEvent == null && pendingDataLines.length === 0) return null;
+    const event = pendingEvent || 'message';
+    const data = pendingDataLines.join('\n');
+    pendingEvent = null;
+    pendingDataLines = [];
+    return { event, data };
+  };
+
+  let result = null;
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+
+    // Process complete lines; SSE messages are separated by a blank line
+    // (`\n\n`). We process line-by-line, emitting on the blank.
+    let nl;
+    while ((nl = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, nl).replace(/\r$/, '');
+      buf = buf.slice(nl + 1);
+      if (line === '') {
+        const ev = flushEvent();
+        if (!ev) continue;
+        if (ev.event === 'progress') {
+          let payload;
+          try {
+            payload = JSON.parse(ev.data);
+          } catch {
+            payload = { line: ev.data };
+          }
+          if (typeof onProgress === 'function' && typeof payload?.line === 'string') {
+            onProgress(payload.line);
+          }
+          continue;
+        }
+        if (ev.event === 'result') {
+          try {
+            result = { kind: 'result', payload: JSON.parse(ev.data) };
+          } catch {
+            result = { kind: 'error', error: `bad result payload: ${ev.data.slice(0, 200)}` };
+          }
+          continue;
+        }
+        if (ev.event === 'error') {
+          let parsed;
+          try {
+            parsed = JSON.parse(ev.data);
+          } catch {
+            parsed = { error: ev.data };
+          }
+          result = { kind: 'error', error: parsed.error, status: parsed.status };
+          continue;
+        }
+        // Unknown event names are ignored.
+        continue;
+      }
+      if (line.startsWith(':')) continue; // heartbeat / comment
+      if (line.startsWith('event:')) {
+        pendingEvent = line.slice(6).trim();
+        continue;
+      }
+      if (line.startsWith('data:')) {
+        // Per spec, a single leading space after the colon is stripped.
+        const v = line.slice(5);
+        pendingDataLines.push(v.startsWith(' ') ? v.slice(1) : v);
+        continue;
+      }
+      // Other SSE fields (id, retry) we don't use.
+    }
+  }
+  // Flush trailing buffered event if the stream ended without a blank.
+  if (pendingDataLines.length || pendingEvent) {
+    const ev = flushEvent();
+    if (ev?.event === 'result' && !result) {
+      try {
+        result = { kind: 'result', payload: JSON.parse(ev.data) };
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return result || { kind: 'error', error: 'event stream closed without a result' };
 }
 
 // Tolerant of two shapes the LLM might emit:
@@ -323,6 +473,10 @@ Common options:
   --duration <seconds>      Audio duration.
   --voice <voice-id>        Speech / TTS voice.
   --audio-kind music|speech|sfx
+  --composition-dir <path>  hyperframes-html only — project-relative path
+                            to the dir containing hyperframes.json /
+                            meta.json / index.html. The daemon runs
+                            \`npx hyperframes render\` against it.
   --daemon-url http://127.0.0.1:7456
 
 Output: a single line of JSON: {"file": { name, size, kind, mime, ... }}.

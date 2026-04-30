@@ -904,6 +904,51 @@ export async function startServer({ port = 7456, returnServer = false } = {}) {
         .status(403)
         .json({ error: 'cross-origin request rejected: media generation is restricted to the local UI / CLI' });
     }
+    // The CLI client (`od media generate`) sends Accept: text/event-stream
+    // so it can show real-time render progress in the agent's chat. The
+    // browser-side UI doesn't, so it gets the legacy single-shot JSON.
+    // Without streaming, a 60–120s HyperFrames render makes the agent's
+    // shell tool look completely hung — no output until the very end —
+    // and the user can't tell whether anything is happening.
+    const wantsStream =
+      typeof req.headers.accept === 'string' &&
+      req.headers.accept.includes('text/event-stream');
+
+    if (wantsStream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no');
+      res.flushHeaders?.();
+    }
+
+    const sendEvent = (event, payload) => {
+      if (!wantsStream || res.writableEnded) return;
+      // SSE format: each event is a series of `field: value` lines
+      // terminated by a blank line. We use the named-event form so the
+      // client can dispatch on `event` instead of parsing every payload.
+      const data = typeof payload === 'string' ? payload : JSON.stringify(payload);
+      res.write(`event: ${event}\n`);
+      // Multi-line data must be split into multiple `data:` lines per
+      // the SSE spec; otherwise the client only sees the first line.
+      for (const line of data.split('\n')) {
+        res.write(`data: ${line}\n`);
+      }
+      res.write('\n');
+    };
+
+    let heartbeat;
+    if (wantsStream) {
+      // Keep the connection alive across long quiet stretches (puppeteer
+      // bootstrap before frame capture starts can be 5–15s of silence).
+      // SSE comments are ignored by clients but reset proxy idle timers
+      // and prove to the agent's shell tool that the call is still live.
+      heartbeat = setInterval(() => {
+        if (res.writableEnded) return;
+        res.write(`: heartbeat ${Date.now()}\n\n`);
+      }, 5000);
+    }
+
     try {
       const projectId = req.params.id;
       // Ensure the project exists in DB before writing files; this gives
@@ -911,7 +956,14 @@ export async function startServer({ port = 7456, returnServer = false } = {}) {
       // normally inherits OD_PROJECT_ID from spawn env so this should
       // always resolve.
       const project = getProject(db, projectId);
-      if (!project) return res.status(404).json({ error: 'project not found' });
+      if (!project) {
+        if (wantsStream) {
+          sendEvent('error', { error: 'project not found' });
+        } else {
+          res.status(404).json({ error: 'project not found' });
+        }
+        return;
+      }
       const meta = await generateMedia({
         projectRoot: PROJECT_ROOT,
         projectsRoot: PROJECTS_DIR,
@@ -926,14 +978,29 @@ export async function startServer({ port = 7456, returnServer = false } = {}) {
           typeof req.body?.duration === 'number' ? req.body.duration : undefined,
         voice: req.body?.voice,
         audioKind: req.body?.audioKind,
+        compositionDir: req.body?.compositionDir,
+        onProgress: wantsStream
+          ? (line) => sendEvent('progress', { line })
+          : undefined,
       });
-      res.json({ file: meta });
+      if (wantsStream) {
+        sendEvent('result', { file: meta });
+      } else {
+        res.json({ file: meta });
+      }
     } catch (err) {
       const status = typeof err?.status === 'number' ? err.status : 400;
       const code = err?.code;
       const body = { error: String(err && err.message ? err.message : err) };
       if (code) body.code = code;
-      res.status(status).json(body);
+      if (wantsStream) {
+        sendEvent('error', { ...body, status });
+      } else {
+        res.status(status).json(body);
+      }
+    } finally {
+      if (heartbeat) clearInterval(heartbeat);
+      if (wantsStream && !res.writableEnded) res.end();
     }
   });
 

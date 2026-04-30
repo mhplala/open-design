@@ -104,12 +104,71 @@ Save the \`file.name\` and reference it in your reply ("I generated
 ### Allowed execution paths
 
 For media projects, \`node "$OD_BIN" media generate …\` is the **only**
-approved execution path. Do not replace it with ad-hoc \`curl\`
-requests, direct imports of daemon modules, home-grown wrappers, or
-"equivalent" scripts. Do not probe the daemon with \`curl\`, \`lsof\`,
-\`netstat\`, or speculative environment debugging before the first
-generate attempt. Treat \`OD_BIN\`, \`OD_PROJECT_ID\`, and
-\`OD_DAEMON_URL\` as the source of truth and try the dispatcher first.
+approved execution path **except for the \`hyperframes-html\` video
+model** — see the carve-out below. Do not replace the dispatcher with
+ad-hoc \`curl\` requests, direct imports of daemon modules, home-grown
+wrappers, or "equivalent" scripts. Do not probe the daemon with
+\`curl\`, \`lsof\`, \`netstat\`, or speculative environment debugging
+before the first generate attempt. Treat \`OD_BIN\`, \`OD_PROJECT_ID\`,
+and \`OD_DAEMON_URL\` as the source of truth and try the dispatcher
+first.
+
+#### Carve-out: \`hyperframes-html\` is agent-authored, daemon-rendered
+
+The composition HTML is your job; the render itself runs in the
+daemon process, not your shell. Reason: many agent CLIs (Claude Code
+in particular) wrap their Bash tool in macOS \`sandbox-exec\`, under
+which puppeteer's Chrome subprocess hangs partway through frame
+capture. The daemon process is unsandboxed and renders reliably AND
+streams per-line progress to your stderr (so the user sees frame
+counts in chat instead of a silent spinner).
+
+**Default recipe — use \`hyperframes init\`, don't write from scratch.**
+For most OD requests ("test video", "5s product reveal", "demo clip"),
+authoring an HF composition from zero costs minutes of model output and
+silent chat-tool time. The init scaffold gives you a valid GSAP-ready
+template in under a second; edit only the parts that the user's prompt
+actually changes.
+
+\`\`\`bash
+COMP_REL=".hyperframes-cache/$(date +%s)-$(openssl rand -hex 2)"
+COMP="$OD_PROJECT_DIR/$COMP_REL"
+
+# Pure file copy, no Chrome — works in any agent shell.
+npx hyperframes init "$COMP" --example blank --skip-skills --non-interactive
+
+# Edit ONLY $COMP/index.html: tweak data-duration on the root, swap
+# the placeholder palette, add 1–3 clip <div>s, and append matching
+# tweens inside the existing window.__timelines["main"] = gsap.timeline(...)
+# block. Skip the Visual Identity HARD-GATE in skills/hyperframes/SKILL.md
+# — OD projects already have their own design-system layer. Default to
+# dark canvas, one warm + one cool accent, restrained motion unless
+# the user explicitly asked for something else.
+
+node "$OD_BIN" media generate \\
+  --project "$OD_PROJECT_ID" \\
+  --surface video \\
+  --model hyperframes-html \\
+  --output "<descriptive-name>.mp4" \\
+  --composition-dir "$COMP_REL"
+\`\`\`
+
+The dispatcher streams per-line render progress to your stderr while
+running. Then it prints a one-line JSON
+\`{"file":{"name":...,"size":...,"kind":"video",...}}\` on stdout.
+Quote \`file.name\` in your reply. The chat surfaces the mp4 as a
+download/open chip automatically.
+
+Only write the composition HTML from scratch when the user explicitly
+needs something the blank template clearly can't host (multi-comp
+timelines, audio-reactive visuals, TTS-synced captions on an existing
+track). For typical test renders, the init+edit path is the default.
+
+You MAY still run lighter HF subcommands from your own shell:
+\`npx hyperframes lint "$COMP"\`, \`transcribe\`, \`tts\` — none of
+these spawn Chrome so the agent-side sandbox doesn't trip them.
+Reserve the daemon dispatch for anything Chrome-bound (\`render\`,
+\`inspect\`, \`preview\`).
 
 If the command fails, surface the command's actual stderr / exit status
 to the user. Do not invent a root cause ("daemon is down", "port is
@@ -159,11 +218,19 @@ substitution. Do not silently fall back.
    discovery rules from the philosophy layer still apply — emit a
    question form on turn 1 unless the user's prompt already pins every
    variable.
+   For \`hyperframes-html\`, the discovery turn is the last turn before
+   you start authoring. Once the user answers, write the composition
+   files into \`.hyperframes-cache/\` and run \`npx hyperframes render\`
+   immediately — do not add a second "plan" or "environment check"
+   message first, and do not call \`od media generate\` (that path is
+   intentionally rejected for this model).
 3. **Generate by shell, narrate in chat.** When you actually invoke
    \`od media generate\`, do it inside a clearly-labelled tool call. After
    it returns, write a short reply: what was produced, the filename,
    and any notes (model substitutions, retries, follow-up suggestions).
    If it fails, quote the real stderr / exit code and stop there.
+   Never say "I dispatched the render" / "the generation has started"
+   unless the shell command has already been executed.
 4. **Iterate by re-running.** To revise, call \`od media generate\` again
    with a new \`--output\` filename (or omit \`--output\` to auto-name).
    Don't try to "edit" generated bytes by hand — re-generate and let the

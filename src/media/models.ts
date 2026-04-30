@@ -30,6 +30,7 @@ import type { AudioKind, MediaAspect } from '../types';
 export type MediaProviderId =
   | 'openai'
   | 'volcengine'
+  | 'hyperframes'
   | 'bfl'
   | 'fal'
   | 'replicate'
@@ -51,6 +52,10 @@ export interface MediaProvider {
   hint: string;
   /** Whether the daemon ships a real integration for this provider. */
   integrated: boolean;
+  /** Whether the provider needs user-supplied credentials. */
+  credentialsRequired?: boolean;
+  /** Whether the provider should appear in Settings -> Media. */
+  settingsVisible?: boolean;
   /** Default base URL the daemon hits when no override is configured. */
   defaultBaseUrl?: string;
   /** Documentation URL for getting an API key. */
@@ -79,6 +84,15 @@ export const MEDIA_PROVIDERS: MediaProvider[] = [
     integrated: true,
     defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
     docsUrl: 'https://console.volcengine.com/ark',
+  },
+  {
+    id: 'hyperframes',
+    label: 'HyperFrames',
+    hint: 'Local HTML -> MP4 renderer',
+    integrated: true,
+    credentialsRequired: false,
+    settingsVisible: false,
+    docsUrl: 'https://hyperframes.heygen.com',
   },
   {
     id: 'bfl',
@@ -330,6 +344,7 @@ export const VIDEO_MODELS: MediaModel[] = [
 
   // MiniMax video.
   { id: 'minimax-video-01', label: 'video-01', hint: 'MiniMax · Hailuo', provider: 'minimax', caps: ['t2v', 'i2v'] },
+  { id: 'hyperframes-html', label: 'hyperframes-html', hint: 'HyperFrames · local HTML renderer', provider: 'hyperframes', caps: ['t2v'] },
 ];
 
 export const AUDIO_MODELS_BY_KIND: Record<AudioKind, MediaModel[]> = {

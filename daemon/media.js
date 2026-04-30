@@ -32,8 +32,11 @@
 // so the CLI can exit non-zero and the agent can't silently narrate the
 // placeholder as the final result.
 
-import { mkdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { execFile as execFileCb, spawn } from 'node:child_process';
+import os from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import {
   AUDIO_DURATIONS_SEC,
   VIDEO_LENGTHS_SEC,
@@ -48,6 +51,8 @@ import {
   mimeFor,
   sanitizeName,
 } from './projects.js';
+
+const execFile = promisify(execFileCb);
 
 const DEFAULT_OUTPUT_BY_SURFACE = {
   image: 'image.png',
@@ -146,6 +151,7 @@ export async function generateMedia(args) {
     duration,
     voice,
     audioKind,
+    compositionDir,
   } = args;
 
   if (!projectRoot) throw new Error('projectRoot required');
@@ -220,6 +226,10 @@ export async function generateMedia(args) {
     duration: clampedDuration,
     voice: voice || '',
     audioKind: resolvedAudioKind,
+    // Project-relative path to the directory the agent scaffolded with
+    // hyperframes.json / meta.json / index.html. Only consumed by the
+    // hyperframes renderer; null/empty for every other provider.
+    compositionDir: typeof compositionDir === 'string' ? compositionDir : null,
   };
 
   const credentials = await resolveProviderConfig(projectRoot, def.provider);
@@ -260,6 +270,22 @@ export async function generateMedia(args) {
       suggestedExt = result.suggestedExt;
     } else if (def.provider === 'volcengine' && surface === 'image') {
       const result = await renderVolcengineImage(ctx, credentials);
+      bytes = result.bytes;
+      providerNote = result.providerNote;
+      suggestedExt = result.suggestedExt;
+    } else if (def.provider === 'hyperframes' && surface === 'video') {
+      // HyperFrames is templated by the agent (it reads the vendored
+      // skill at skills/hyperframes/SKILL.md and writes a composition
+      // HTML based on the user's prompt). But the actual `npx
+      // hyperframes render` step runs HERE in the daemon process, not
+      // in the agent's shell. Reason: the agent's shell on macOS
+      // (Claude Code in particular) is wrapped in `sandbox-exec`, and
+      // puppeteer's Chrome subprocess hangs partway through frame
+      // capture under that sandbox. The daemon process is unsandboxed,
+      // so puppeteer behaves correctly. Agent-side npx is reserved for
+      // the lighter HF subcommands (lint, transcribe, tts) that don't
+      // need to spawn Chrome.
+      const result = await renderHyperFramesViaCli(ctx, dir, args.onProgress);
       bytes = result.bytes;
       providerNote = result.providerNote;
       suggestedExt = result.suggestedExt;
@@ -979,6 +1005,201 @@ async function renderFishAudioTTS(ctx, credentials) {
     providerNote: `fishaudio/${wireModel} · ${bytes.length} bytes`,
     suggestedExt: '.mp3',
   };
+}
+
+// ---------------------------------------------------------------------------
+// Provider: HyperFrames — local HTML→MP4 renderer (heygen-com/hyperframes).
+//
+// The agent does the creative work: it reads skills/hyperframes/SKILL.md,
+// writes a composition (`hyperframes.json` + `meta.json` + `index.html`,
+// with a GSAP timeline) into a hidden cache dir under the project, then
+// dispatches here with `--composition-dir <relative-path>`.
+//
+// We run `npx hyperframes render <absolutePath> --output <tmp>/render.mp4`
+// from the daemon process (NOT the agent's shell) for two reasons:
+//   1. HyperFrames spawns a puppeteer-controlled Chrome to capture frames.
+//      Claude Code's Bash tool wraps subprocesses in macOS sandbox-exec,
+//      under which Chrome hangs partway through frame capture.
+//   2. Pointing --output at a temp dir keeps HF's auto-created
+//      `work-<uuid>/` (per-frame jpegs + intermediate compiled HTML)
+//      OUT of the project folder. We delete the temp tree in the
+//      `finally` block; only the final mp4 bytes are returned to the
+//      generic dispatcher flow, which writes them into the project dir
+//      under the user-supplied filename.
+// ---------------------------------------------------------------------------
+
+const HYPERFRAMES_RENDER_TIMEOUT_MS = 5 * 60 * 1000;
+
+async function renderHyperFramesViaCli(ctx, projectDir, onProgress) {
+  const compRel = ctx.compositionDir;
+  if (typeof compRel !== 'string' || !compRel.trim()) {
+    throw new Error(
+      'hyperframes-html requires --composition-dir <project-relative-path> ' +
+        'pointing at the directory the agent scaffolded with hyperframes.json / ' +
+        'meta.json / index.html. The agent should write the composition into ' +
+        '$OD_PROJECT_DIR/.hyperframes-cache/<id>/ and pass that path here.',
+    );
+  }
+  // Resolve compositionDir against projectDir and refuse anything that
+  // escapes — the agent has free file access to the project but the
+  // dispatcher must not let a bad relative path render an arbitrary
+  // directory on the host.
+  const projectRootResolved = path.resolve(projectDir);
+  const compAbs = path.resolve(projectRootResolved, compRel);
+  if (
+    compAbs !== projectRootResolved &&
+    !compAbs.startsWith(projectRootResolved + path.sep)
+  ) {
+    throw new Error(
+      `compositionDir "${compRel}" resolves outside the project directory. ` +
+        'Pass a path relative to the project (e.g. ".hyperframes-cache/abc").',
+    );
+  }
+  // Existence check — render against a missing directory hangs HF for
+  // a while before failing, so short-circuit with a clear error.
+  let compStat;
+  try {
+    compStat = await stat(compAbs);
+  } catch {
+    throw new Error(
+      `compositionDir not found: ${compRel} (resolved to ${compAbs})`,
+    );
+  }
+  if (!compStat.isDirectory()) {
+    throw new Error(`compositionDir is not a directory: ${compRel}`);
+  }
+  const indexStat = await stat(path.join(compAbs, 'index.html')).catch(
+    () => null,
+  );
+  if (!indexStat || !indexStat.isFile()) {
+    throw new Error(
+      `compositionDir is missing index.html: ${compRel}. The agent must ` +
+        'write index.html (with window.__timelines registration) before dispatch.',
+    );
+  }
+
+  const tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'open-design-hf-'));
+  const tmpOutput = path.join(tmpRoot, 'render.mp4');
+  try {
+    // Pin --workers 1 to keep memory bounded (each worker is a Chrome
+    // process at ~256 MB). standard quality matches HF's default. We
+    // do NOT pass --quiet so progress lines stream out and the agent
+    // (and the user reading the chat in real time) can see frame-by-
+    // frame capture status instead of staring at a hung pipe.
+    await runHyperFramesRender(compAbs, tmpOutput, onProgress);
+    const bytes = await readFile(tmpOutput);
+    return {
+      bytes,
+      providerNote: `hyperframes/local-html · ${ctx.aspect} · ${bytes.length} bytes`,
+      suggestedExt: '.mp4',
+    };
+  } catch (err) {
+    const stderr =
+      err && typeof err.stderr === 'string' ? err.stderr.trim() : '';
+    const message = stderr || (err && err.message ? err.message : String(err));
+    throw new Error(`hyperframes render failed: ${truncate(message, 480)}`);
+  } finally {
+    await rm(tmpRoot, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Run `npx hyperframes render` and stream every line of stdout/stderr
+ * through `onProgress`. Resolves on a clean exit, rejects on non-zero
+ * exit (with the stderr tail attached so the dispatcher can surface it).
+ *
+ * Streaming matters for UX: the render typically takes 60–120s and
+ * HF prints "Capturing frame N/M" as it goes. Without piping these
+ * lines back to the caller, the HTTP request looks hung and the
+ * agent's chat tool shows a long quiet spinner — users can't tell
+ * whether anything is happening.
+ */
+function runHyperFramesRender(compAbs, tmpOutput, onProgress) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      'npx',
+      [
+        '-y',
+        'hyperframes',
+        'render',
+        compAbs,
+        '--output',
+        tmpOutput,
+        '--workers',
+        '1',
+      ],
+      {
+        // Inherit env so npx can find the cached hyperframes install
+        // and any user-level node config. stdin closed (HF doesn't
+        // read from it), stdout/stderr piped so we can stream.
+        env: process.env,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    );
+
+    // HF uses ANSI escape sequences (cursor moves, color codes, line
+    // erases) for its pretty progress bar. Strip those before
+    // forwarding so the agent's chat doesn't render a wall of `[2K`.
+    // The regex covers CSI sequences (most of what HF emits).
+    const stripAnsi = (s) =>
+      s.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '').replace(/\x1b\[\?[0-9]+[hl]/g, '');
+
+    const emit = (chunk) => {
+      if (typeof onProgress !== 'function') return;
+      const text = stripAnsi(chunk.toString('utf8'));
+      // HF refreshes a single progress line many times per second; split
+      // on \r and \n so each "Capturing frame X/Y" update reaches the
+      // caller as its own line. Drop empty/duplicate lines so the
+      // SSE stream stays compact.
+      const lines = text.split(/[\r\n]+/);
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          onProgress(trimmed);
+        } catch {
+          // best-effort: never let an emitter throw kill the render
+        }
+      }
+    };
+
+    let stderrTail = '';
+    child.stdout.on('data', emit);
+    child.stderr.on('data', (chunk) => {
+      stderrTail += chunk.toString('utf8');
+      if (stderrTail.length > 8000) stderrTail = stderrTail.slice(-8000);
+      emit(chunk);
+    });
+
+    const timer = setTimeout(() => {
+      try {
+        child.kill('SIGKILL');
+      } catch {
+        // ignore
+      }
+      reject(
+        new Error(
+          `hyperframes render timed out after ${Math.round(HYPERFRAMES_RENDER_TIMEOUT_MS / 1000)}s`,
+        ),
+      );
+    }, HYPERFRAMES_RENDER_TIMEOUT_MS);
+
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.on('close', (code, signal) => {
+      clearTimeout(timer);
+      if (code === 0) return resolve();
+      const reason = signal ? `signal ${signal}` : `exit ${code}`;
+      const tail = stderrTail.trim().split('\n').slice(-12).join('\n');
+      const err = new Error(
+        `hyperframes render exited ${reason}` + (tail ? `\n${tail}` : ''),
+      );
+      err.stderr = tail;
+      reject(err);
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------

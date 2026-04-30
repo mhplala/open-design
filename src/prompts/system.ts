@@ -201,6 +201,11 @@ function renderMetadataBlock(
     lines.push(
       'This is a **video** project. Plan the shotlist (1-3 shots for short clips), describe motion + camera, then dispatch via the **media generation contract** using `od media generate --surface video --model <videoModel> --length <seconds> --aspect <ratio>`. If the active workspace also ships a hyperframes-style interactive-video skill, prefer composing several shorter clips into a timeline rather than one monolithic generation. Do NOT emit `<artifact>` HTML.',
     );
+    if (metadata.videoModel === 'hyperframes-html') {
+      lines.push(
+        'Special case: `hyperframes-html` is a local HTML-to-MP4 renderer, not a photoreal text-to-video model. Treat it like a motion design / title-card / product interstitial renderer. Ask at most one clarifying question, then dispatch immediately. Do not spend extra turns narrating environment checks, shot plans, or "I am about to generate" progress messages.',
+      );
+    }
   }
   if (metadata.kind === 'audio') {
     lines.push(

@@ -35,6 +35,12 @@ Short-form (≤ 10s) is the sweet spot for current text-to-video models —
 they're great at one **shot** with one **idea**, weaker at multi-cut
 narratives. Plan one shot per call.
 
+Special case: `hyperframes-html` is **not** a photoreal text-to-video
+model. It's a local HTML-to-MP4 renderer. For that model, do not roleplay
+cinematography or "real-world" camera physics. Treat the brief as a motion
+design card / title-frame / product interstitial, ask at most one
+clarifying question, then dispatch immediately.
+
 ## Resource map
 
 ```
@@ -64,8 +70,12 @@ Write the shotlist BEFORE calling the model:
 | Motion | What moves, at what pace? Subject motion vs camera motion. |
 | Sound | Ambient bed? (only if the model supports audio) |
 
-Show this to the user as a one-sentence plan before dispatching — they
-can redirect cheaply.
+Normally, show this to the user as a one-sentence plan before
+dispatching — they can redirect cheaply.
+
+For `hyperframes-html`, skip the extra pre-dispatch narration once the
+user has answered the discovery form. Collapse the plan into the actual
+generation prompt and dispatch immediately.
 
 ### Step 2 — Compose the prompt
 
@@ -73,6 +83,11 @@ Use the format the upstream model prefers (Seedance: motion + camera +
 mood; Kling: subject + camera + style; Veo: subject + cinematography +
 sound). Bind the project's `videoAspect` and `videoLength` directly to
 the API parameters; never put them in prose.
+
+For `hyperframes-html`, write a concise motion-design brief instead of a
+camera-realism prompt. Focus on subject, layout, palette, motion
+character, and overall tone. Do not spend turns narrating environment
+checks, missing side files, or "I am about to dispatch" status updates.
 
 ### Step 3 — Dispatch via the media contract
 
@@ -97,6 +112,9 @@ The bytes land in the project; the FileViewer plays it automatically.
 Reply with: shot summary, the filename returned by the dispatcher, and
 one sentence on what to try if the user wants a variation.
 
+For `hyperframes-html`, keep the reply especially short: what was
+rendered, the filename, and one concrete variation idea.
+
 ## Hard rules
 
 - One shot per turn. Multi-shot timelines belong in a hyperframes /
@@ -106,3 +124,5 @@ one sentence on what to try if the user wants a variation.
   something to play in the file viewer.
 - When the underlying model fails (NSFW filter, content policy,
   timeout), report the error verbatim. Don't silently retry.
+- Do not claim a render has been "sent", "started", or "is running"
+  unless you have already called `od media generate`.

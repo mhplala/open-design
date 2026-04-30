@@ -687,6 +687,8 @@ function ModelPicker({
   const groups = useMemo(() => groupByProvider(models), [models]);
 
   function providerHasKey(providerId: string): boolean {
+    const provider = groups.find((g) => g.provider.id === providerId)?.provider;
+    if (provider?.credentialsRequired === false) return true;
     const entry = config.mediaProviders?.[providerId];
     return (entry?.apiKey ?? '').trim().length > 0;
   }
@@ -722,6 +724,7 @@ function ModelPicker({
   const selectedNeedsKey =
     !!selectedProvider
     && selectedProvider.integrated
+    && selectedProvider.credentialsRequired !== false
     && !providerHasKey(selectedProvider.id);
 
   return (
@@ -747,7 +750,9 @@ function ModelPicker({
           //  - integrated but missing key  →  user-fixable via Configure
           //  - non-integrated (stub)        →  not yet shipped
           // Both visually de-emphasize the model cards.
-          const dimmed = provider.integrated ? !hasKey : true;
+          const dimmed = provider.integrated
+            ? provider.credentialsRequired !== false && !hasKey
+            : true;
           return (
             <div
               key={provider.id}
@@ -765,7 +770,7 @@ function ModelPicker({
                       ? t('settings.mediaProviderIntegrated')
                       : t('settings.mediaProviderPending')}
                   </span>
-                  {provider.integrated && !hasKey ? (
+                  {provider.integrated && provider.credentialsRequired !== false && !hasKey ? (
                     <button
                       type="button"
                       className="model-group-cta"

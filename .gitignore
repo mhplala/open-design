@@ -35,6 +35,18 @@ tsconfig.tsbuildinfo
 .opencode/
 .claude/
 .codex/
+.factory/
+.trae/
+.aider/
+.droid/
+.openclaw/
+
+# `npx skills add` side-effects. We vendor the official HyperFrames skill
+# under skills/hyperframes/ (with an OD frontmatter shim) instead of relying
+# on per-agent skill loaders, so the lockfile + auto-installed agent dirs
+# above are derivative and never need to be committed. To refresh from
+# upstream, run `node scripts/sync-hyperframes-skill.mjs`.
+skills-lock.json
 
 # Commander task scratchpad; keep local task notes out of git by default.
 .task/

@@ -547,11 +547,10 @@ function LanguageSection() {
 
 /* ============================================================
    Media providers — keys for image / video / audio dispatchers.
-   We render every provider in MEDIA_PROVIDERS so the user sees
-   the full surface area of what lobehub-class image/video models
-   need; "integrated" providers ship real upstream calls today,
-   the rest are explicitly labelled as stubs so users know what
-   they're getting before they paste a secret in.
+   We render every settings-visible provider in MEDIA_PROVIDERS so
+   the user sees the full credential-driven surface area. Local
+   renderers like HyperFrames stay in the model picker but do not
+   belong in Settings because they don't need keys.
    ============================================================ */
 function MediaProvidersSection({
   cfg,
@@ -570,7 +569,9 @@ function MediaProvidersSection({
 
   // Stable list ordering: integrated providers first, then stubs.
   const ordered = useMemo(() => {
-    const arr = [...MEDIA_PROVIDERS].filter((p) => p.id !== 'stub');
+    const arr = [...MEDIA_PROVIDERS].filter(
+      (p) => p.id !== 'stub' && p.settingsVisible !== false,
+    );
     arr.sort((a, b) => Number(b.integrated) - Number(a.integrated));
     return arr;
   }, []);
