@@ -127,10 +127,31 @@ export interface Dict {
   'entry.tabDesigns': string;
   'entry.tabExamples': string;
   'entry.tabDesignSystems': string;
+  'entry.tabImageTemplates': string;
+  'entry.tabVideoTemplates': string;
   'entry.openSettingsTitle': string;
   'entry.openSettingsAria': string;
   'entry.resizeAria': string;
   'entry.loadingWorkspace': string;
+
+  // Prompt template gallery (Image templates / Video templates tabs +
+  // preview modal) and the new-project picker.
+  'promptTemplates.searchPlaceholder': string;
+  'promptTemplates.countLabel': string;
+  'promptTemplates.emptyImage': string;
+  'promptTemplates.emptyVideo': string;
+  'promptTemplates.emptyNoMatch': string;
+  'promptTemplates.attributionFooter': string;
+  'promptTemplates.openPreviewTitle': string;
+  'promptTemplates.sourcePrefix': string;
+  'promptTemplates.fetchError': string;
+  'promptTemplates.promptLabel': string;
+  'promptTemplates.copyPrompt': string;
+  'promptTemplates.copyDone': string;
+  'promptTemplates.modelHint': string;
+  'promptTemplates.openSource': string;
+  'promptTemplates.openFullscreen': string;
+  'promptTemplates.closeFullscreen': string;
 
   // New project panel
   // Top-level surface picker — sits above the existing tabs and switches
@@ -195,6 +216,11 @@ export interface Dict {
   'newproj.noTemplatesTitle': string;
   'newproj.noTemplatesBody': string;
   'newproj.savedTemplate': string;
+  'newproj.promptTemplateLabel': string;
+  'newproj.promptTemplateNone': string;
+  'newproj.promptTemplateNoneSub': string;
+  'newproj.promptTemplateSearch': string;
+  'newproj.promptTemplateEmpty': string;
   'newproj.fileSingular': string;
   'newproj.filePlural': string;
   'newproj.create': string;

@@ -7,6 +7,7 @@ import {
   daemonIsLive,
   fetchAgents,
   fetchDesignSystems,
+  fetchPromptTemplates,
   fetchSkills,
 } from './providers/registry';
 import { navigate, useRoute } from './router';
@@ -30,6 +31,7 @@ import type {
   DesignSystemSummary,
   Project,
   ProjectTemplate,
+  PromptTemplateSummary,
   SkillSummary,
 } from './types';
 
@@ -44,6 +46,7 @@ export function App() {
   const [designSystems, setDesignSystems] = useState<DesignSystemSummary[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [templates, setTemplates] = useState<ProjectTemplate[]>([]);
+  const [promptTemplates, setPromptTemplates] = useState<PromptTemplateSummary[]>([]);
   // Goes false once the bootstrap effect has finished its initial round of
   // fetches. The entry view uses this to show shimmer / skeleton states
   // instead of an "empty" page that flickers before data lands.
@@ -57,22 +60,32 @@ export function App() {
       const alive = await daemonIsLive();
       if (cancelled) return;
       setDaemonLive(alive);
-      const [agentList, skillList, dsList, projectList, templateList] =
-        await Promise.all([
-          alive ? fetchAgents() : Promise.resolve([] as AgentInfo[]),
-          alive ? fetchSkills() : Promise.resolve([] as SkillSummary[]),
-          alive
-            ? fetchDesignSystems()
-            : Promise.resolve([] as DesignSystemSummary[]),
-          alive ? listProjects() : Promise.resolve([] as Project[]),
-          alive ? listTemplates() : Promise.resolve([] as ProjectTemplate[]),
-        ]);
+      const [
+        agentList,
+        skillList,
+        dsList,
+        projectList,
+        templateList,
+        promptTemplateList,
+      ] = await Promise.all([
+        alive ? fetchAgents() : Promise.resolve([] as AgentInfo[]),
+        alive ? fetchSkills() : Promise.resolve([] as SkillSummary[]),
+        alive
+          ? fetchDesignSystems()
+          : Promise.resolve([] as DesignSystemSummary[]),
+        alive ? listProjects() : Promise.resolve([] as Project[]),
+        alive ? listTemplates() : Promise.resolve([] as ProjectTemplate[]),
+        alive
+          ? fetchPromptTemplates()
+          : Promise.resolve([] as PromptTemplateSummary[]),
+      ]);
       if (cancelled) return;
       setAgents(agentList);
       setSkills(skillList);
       setDesignSystems(dsList);
       setProjects(projectList);
       setTemplates(templateList);
+      setPromptTemplates(promptTemplateList);
 
       setConfig((prev) => {
         const next = { ...prev };
@@ -335,6 +348,7 @@ export function App() {
           designSystems={designSystems}
           projects={projects}
           templates={templates}
+          promptTemplates={promptTemplates}
           defaultDesignSystemId={config.designSystemId}
           config={config}
           agents={agents}

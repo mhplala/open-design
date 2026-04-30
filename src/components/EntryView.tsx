@@ -9,6 +9,7 @@ import type {
   ProjectKind,
   ProjectMetadata,
   ProjectTemplate,
+  PromptTemplateSummary,
   SkillSummary,
 } from '../types';
 import { DesignsTab } from './DesignsTab';
@@ -19,15 +20,23 @@ import { Icon } from './Icon';
 import { LanguageMenu } from './LanguageMenu';
 import { CenteredLoader } from './Loading';
 import { NewProjectPanel, type CreateInput } from './NewProjectPanel';
+import { PromptTemplatePreviewModal } from './PromptTemplatePreviewModal';
+import { PromptTemplatesTab } from './PromptTemplatesTab';
 import type { SettingsTab } from './SettingsDialog';
 
-type TopTab = 'designs' | 'examples' | 'design-systems';
+type TopTab =
+  | 'designs'
+  | 'examples'
+  | 'design-systems'
+  | 'image-templates'
+  | 'video-templates';
 
 interface Props {
   skills: SkillSummary[];
   designSystems: DesignSystemSummary[];
   projects: Project[];
   templates: ProjectTemplate[];
+  promptTemplates: PromptTemplateSummary[];
   defaultDesignSystemId: string | null;
   config: AppConfig;
   agents: AgentInfo[];
@@ -62,6 +71,7 @@ export function EntryView({
   designSystems,
   projects,
   templates,
+  promptTemplates,
   defaultDesignSystemId,
   config,
   agents,
@@ -76,6 +86,8 @@ export function EntryView({
   const t = useT();
   const [topTab, setTopTab] = useState<TopTab>('designs');
   const [previewSystemId, setPreviewSystemId] = useState<string | null>(null);
+  const [previewPromptTemplate, setPreviewPromptTemplate] =
+    useState<PromptTemplateSummary | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => loadSidebarWidth());
   const [resizing, setResizing] = useState(false);
 
@@ -180,6 +192,7 @@ export function EntryView({
           designSystems={designSystems}
           defaultDesignSystemId={defaultDesignSystemId}
           templates={templates}
+          promptTemplates={promptTemplates}
           config={config}
           onCreate={handleCreate}
           onOpenSettings={onOpenSettings}
@@ -229,6 +242,18 @@ export function EntryView({
               label={t('entry.tabDesignSystems')}
               onClick={setTopTab}
             />
+            <TopTabButton
+              current={topTab}
+              value="image-templates"
+              label={t('entry.tabImageTemplates')}
+              onClick={setTopTab}
+            />
+            <TopTabButton
+              current={topTab}
+              value="video-templates"
+              label={t('entry.tabVideoTemplates')}
+              onClick={setTopTab}
+            />
           </div>
           <div className="entry-header-right">
             {/* Avatar settings live next to tabs to mirror the project view. */}
@@ -274,6 +299,20 @@ export function EntryView({
                   onPreview={previewDesignSystem}
                 />
               ) : null}
+              {topTab === 'image-templates' ? (
+                <PromptTemplatesTab
+                  surface="image"
+                  templates={promptTemplates}
+                  onPreview={(tpl) => setPreviewPromptTemplate(tpl)}
+                />
+              ) : null}
+              {topTab === 'video-templates' ? (
+                <PromptTemplatesTab
+                  surface="video"
+                  templates={promptTemplates}
+                  onPreview={(tpl) => setPreviewPromptTemplate(tpl)}
+                />
+              ) : null}
             </>
           )}
         </div>
@@ -282,6 +321,12 @@ export function EntryView({
         <DesignSystemPreviewModal
           system={previewSystem}
           onClose={() => setPreviewSystemId(null)}
+        />
+      ) : null}
+      {previewPromptTemplate ? (
+        <PromptTemplatePreviewModal
+          summary={previewPromptTemplate}
+          onClose={() => setPreviewPromptTemplate(null)}
         />
       ) : null}
     </div>

@@ -11,6 +11,7 @@ import {
   groupByProvider,
 } from '../media/models';
 import type { MediaModel } from '../media/models';
+import { fetchPromptTemplate } from '../providers/registry';
 import type {
   AppConfig,
   AudioKind,
@@ -19,6 +20,8 @@ import type {
   ProjectKind,
   ProjectMetadata,
   ProjectTemplate,
+  PromptTemplateDetail,
+  PromptTemplateSummary,
   SkillSummary,
   Surface,
 } from '../types';
@@ -44,6 +47,10 @@ interface Props {
   designSystems: DesignSystemSummary[];
   defaultDesignSystemId: string | null;
   templates: ProjectTemplate[];
+  // Curated image / video prompt templates loaded from
+  // /api/prompt-templates. Empty for the web/audio surfaces — the picker
+  // only shows up when we're on image or video.
+  promptTemplates: PromptTemplateSummary[];
   // Config is forwarded to the model picker so it can show "needs key"
   // affordances for providers that aren't configured yet, and stay in
   // sync with the latest Settings save without re-reading localStorage.
@@ -95,6 +102,7 @@ export function NewProjectPanel({
   designSystems,
   defaultDesignSystemId,
   templates,
+  promptTemplates,
   config,
   onCreate,
   onOpenSettings,
@@ -137,6 +145,44 @@ export function NewProjectPanel({
   const [audioModel, setAudioModel] = useState<string>(DEFAULT_AUDIO_MODEL.speech);
   const [audioDuration, setAudioDuration] = useState<number>(30);
   const [voice, setVoice] = useState('');
+
+  // Curated prompt-template seed (image / video). We hold the *summary*
+  // (id + metadata) immediately on click and resolve the full body
+  // asynchronously — the body is only needed at create-time when we
+  // build the project metadata, so a slow fetch never blocks selection.
+  const [imagePromptTemplate, setImagePromptTemplate] =
+    useState<PromptTemplateSummary | null>(null);
+  const [imagePromptTemplateBody, setImagePromptTemplateBody] = useState<string | null>(null);
+  const [videoPromptTemplate, setVideoPromptTemplate] =
+    useState<PromptTemplateSummary | null>(null);
+  const [videoPromptTemplateBody, setVideoPromptTemplateBody] = useState<string | null>(null);
+
+  // Auto-apply the template's recommended model + aspect when the user
+  // first picks it. Doing it inside the picker (vs as a side-effect on
+  // the metadata builder) gives a visible nudge — the model card
+  // highlights, the aspect chip highlights — so the user understands
+  // why the form moved.
+  function pickImageTemplate(tpl: PromptTemplateSummary | null) {
+    setImagePromptTemplate(tpl);
+    setImagePromptTemplateBody(null);
+    if (!tpl) return;
+    if (tpl.model) setImageModel(tpl.model);
+    if (tpl.aspect) setImageAspect(tpl.aspect);
+    void fetchPromptTemplate('image', tpl.id).then((detail: PromptTemplateDetail | null) => {
+      if (detail) setImagePromptTemplateBody(detail.prompt);
+    });
+  }
+
+  function pickVideoTemplate(tpl: PromptTemplateSummary | null) {
+    setVideoPromptTemplate(tpl);
+    setVideoPromptTemplateBody(null);
+    if (!tpl) return;
+    if (tpl.model) setVideoModel(tpl.model);
+    if (tpl.aspect) setVideoAspect(tpl.aspect);
+    void fetchPromptTemplate('video', tpl.id).then((detail: PromptTemplateDetail | null) => {
+      if (detail) setVideoPromptTemplateBody(detail.prompt);
+    });
+  }
 
   // When the audio kind flips, reset the model to that kind's default.
   // This keeps users from accidentally creating a "music" project that
@@ -217,9 +263,13 @@ export function NewProjectPanel({
       imageModel,
       imageAspect,
       imageStyle,
+      imagePromptTemplate,
+      imagePromptTemplateBody,
       videoModel,
       videoLength,
       videoAspect,
+      videoPromptTemplate,
+      videoPromptTemplateBody,
       audioKind,
       audioModel,
       audioDuration,
@@ -336,6 +386,9 @@ export function NewProjectPanel({
             onChangeAspect={setImageAspect}
             style={imageStyle}
             onChangeStyle={setImageStyle}
+            promptTemplates={promptTemplates}
+            selectedPromptTemplate={imagePromptTemplate}
+            onChangePromptTemplate={pickImageTemplate}
             config={config}
             onOpenSettings={onOpenSettings}
           />
@@ -349,6 +402,9 @@ export function NewProjectPanel({
             onChangeLength={setVideoLength}
             aspect={videoAspect}
             onChangeAspect={setVideoAspect}
+            promptTemplates={promptTemplates}
+            selectedPromptTemplate={videoPromptTemplate}
+            onChangePromptTemplate={pickVideoTemplate}
             config={config}
             onOpenSettings={onOpenSettings}
           />
@@ -468,6 +524,9 @@ function ImageForm({
   onChangeAspect,
   style,
   onChangeStyle,
+  promptTemplates,
+  selectedPromptTemplate,
+  onChangePromptTemplate,
   config,
   onOpenSettings,
 }: {
@@ -477,12 +536,21 @@ function ImageForm({
   onChangeAspect: (a: MediaAspect) => void;
   style: string;
   onChangeStyle: (s: string) => void;
+  promptTemplates: PromptTemplateSummary[];
+  selectedPromptTemplate: PromptTemplateSummary | null;
+  onChangePromptTemplate: (tpl: PromptTemplateSummary | null) => void;
   config: AppConfig;
   onOpenSettings: (tab?: SettingsTab) => void;
 }) {
   const t = useT();
   return (
     <>
+      <PromptTemplatePicker
+        surface="image"
+        templates={promptTemplates}
+        selected={selectedPromptTemplate}
+        onChange={onChangePromptTemplate}
+      />
       <ModelPicker
         value={model}
         onChange={onChangeModel}
@@ -516,6 +584,9 @@ function VideoForm({
   onChangeLength,
   aspect,
   onChangeAspect,
+  promptTemplates,
+  selectedPromptTemplate,
+  onChangePromptTemplate,
   config,
   onOpenSettings,
 }: {
@@ -525,6 +596,9 @@ function VideoForm({
   onChangeLength: (n: number) => void;
   aspect: MediaAspect;
   onChangeAspect: (a: MediaAspect) => void;
+  promptTemplates: PromptTemplateSummary[];
+  selectedPromptTemplate: PromptTemplateSummary | null;
+  onChangePromptTemplate: (tpl: PromptTemplateSummary | null) => void;
   config: AppConfig;
   onOpenSettings: (tab?: SettingsTab) => void;
 }) {
@@ -532,6 +606,12 @@ function VideoForm({
   const lengths = [3, 5, 10];
   return (
     <>
+      <PromptTemplatePicker
+        surface="video"
+        templates={promptTemplates}
+        selected={selectedPromptTemplate}
+        onChange={onChangePromptTemplate}
+      />
       <ModelPicker
         value={model}
         onChange={onChangeModel}
@@ -877,6 +957,197 @@ function AspectPicker({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Prompt-template picker — compact popover for the image/video
+   surfaces. Surfaces the user-curated catalog under prompt-templates/
+   without leaving the create panel; the gallery in the entry-header
+   tab is for browsing, this is for picking.
+   ============================================================ */
+function PromptTemplatePicker({
+  surface,
+  templates,
+  selected,
+  onChange,
+}: {
+  surface: 'image' | 'video';
+  templates: PromptTemplateSummary[];
+  selected: PromptTemplateSummary | null;
+  onChange: (tpl: PromptTemplateSummary | null) => void;
+}) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+
+  const surfaceScoped = useMemo(
+    () => templates.filter((tpl) => tpl.surface === surface),
+    [templates, surface],
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return surfaceScoped;
+    return surfaceScoped.filter((tpl) => {
+      return (
+        tpl.title.toLowerCase().includes(q)
+        || (tpl.summary || '').toLowerCase().includes(q)
+        || (tpl.category || '').toLowerCase().includes(q)
+        || (tpl.tags ?? []).some((tag) => tag.toLowerCase().includes(q))
+      );
+    });
+  }, [surfaceScoped, query]);
+
+  useEffect(() => {
+    if (!open) return;
+    const tid = window.setTimeout(() => searchRef.current?.focus(), 30);
+    return () => window.clearTimeout(tid);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointer(e: MouseEvent) {
+      if (wrapRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    const tid = window.setTimeout(() => {
+      document.addEventListener('mousedown', onPointer);
+      document.addEventListener('keydown', onKey);
+    }, 0);
+    return () => {
+      window.clearTimeout(tid);
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  // Empty corpus — don't render the picker at all so we don't tease an
+  // empty popover. Daemon will be live but the prompt-templates folder
+  // can be intentionally empty (e.g. running against a dev branch with
+  // no curated content).
+  if (surfaceScoped.length === 0) return null;
+
+  return (
+    <div className="newproj-section pt-picker" ref={wrapRef}>
+      <label className="newproj-label">{t('newproj.promptTemplateLabel')}</label>
+      <button
+        type="button"
+        className={`pt-picker-trigger${open ? ' open' : ''}${selected ? '' : ' empty'}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="pt-picker-thumb" aria-hidden>
+          {selected?.previewImageUrl ? (
+            <img src={selected.previewImageUrl} alt="" loading="lazy" />
+          ) : (
+            <Icon
+              name={surface === 'image' ? 'image' : 'video'}
+              size={16}
+            />
+          )}
+        </span>
+        <span className="pt-picker-meta">
+          <span className="pt-picker-title">
+            {selected ? selected.title : t('newproj.promptTemplateNone')}
+          </span>
+          <span className="pt-picker-sub">
+            {selected
+              ? selected.category
+              : t('newproj.promptTemplateNoneSub')}
+          </span>
+        </span>
+        <Icon
+          name="chevron-down"
+          size={14}
+          className="pt-picker-chevron"
+          style={{ transform: open ? 'rotate(180deg)' : undefined }}
+        />
+      </button>
+      {open ? (
+        <div className="pt-picker-popover" role="listbox">
+          <div className="pt-picker-head">
+            <input
+              ref={searchRef}
+              className="pt-picker-search"
+              placeholder={t('newproj.promptTemplateSearch')}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="pt-picker-list">
+            <button
+              type="button"
+              role="option"
+              aria-selected={selected === null}
+              className={`pt-picker-item${selected === null ? ' active' : ''}`}
+              onClick={() => {
+                onChange(null);
+                setOpen(false);
+              }}
+            >
+              <span className="pt-picker-item-thumb" aria-hidden>
+                <Icon name="minus" size={14} />
+              </span>
+              <span className="pt-picker-item-text">
+                <span className="pt-picker-item-title">
+                  {t('newproj.promptTemplateNone')}
+                </span>
+                <span className="pt-picker-item-sub">
+                  {t('newproj.promptTemplateNoneSub')}
+                </span>
+              </span>
+            </button>
+            {filtered.length === 0 ? (
+              <div className="pt-picker-empty">
+                {t('newproj.promptTemplateEmpty')}
+              </div>
+            ) : (
+              filtered.map((tpl) => {
+                const active = selected?.id === tpl.id;
+                return (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    role="option"
+                    aria-selected={active}
+                    className={`pt-picker-item${active ? ' active' : ''}`}
+                    onClick={() => {
+                      onChange(tpl);
+                      setOpen(false);
+                    }}
+                  >
+                    <span className="pt-picker-item-thumb" aria-hidden>
+                      {tpl.previewImageUrl ? (
+                        <img src={tpl.previewImageUrl} alt="" loading="lazy" />
+                      ) : (
+                        <Icon
+                          name={surface === 'image' ? 'image' : 'video'}
+                          size={14}
+                        />
+                      )}
+                    </span>
+                    <span className="pt-picker-item-text">
+                      <span className="pt-picker-item-title">{tpl.title}</span>
+                      <span className="pt-picker-item-sub">
+                        {tpl.category}
+                        {tpl.source.author ? ` · ${tpl.source.author}` : ''}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1446,9 +1717,13 @@ function buildMetadata(input: {
   imageModel: string;
   imageAspect: MediaAspect;
   imageStyle: string;
+  imagePromptTemplate: PromptTemplateSummary | null;
+  imagePromptTemplateBody: string | null;
   videoModel: string;
   videoLength: number;
   videoAspect: MediaAspect;
+  videoPromptTemplate: PromptTemplateSummary | null;
+  videoPromptTemplateBody: string | null;
   audioKind: AudioKind;
   audioModel: string;
   audioDuration: number;
@@ -1459,20 +1734,40 @@ function buildMetadata(input: {
     : {};
 
   if (input.surface === 'image') {
+    const imageTpl = input.imagePromptTemplate;
+    const promptSeed = imageTpl
+      ? {
+        imagePromptTemplateId: imageTpl.id,
+        imagePromptTemplateTitle: imageTpl.title,
+        imagePromptTemplateBody: input.imagePromptTemplateBody ?? undefined,
+        imagePromptTemplateSource: imageTpl.source,
+      }
+      : {};
     return {
       kind: 'image',
       imageModel: input.imageModel,
       imageAspect: input.imageAspect,
       imageStyle: input.imageStyle.trim() || undefined,
+      ...promptSeed,
       ...inspirations,
     };
   }
   if (input.surface === 'video') {
+    const videoTpl = input.videoPromptTemplate;
+    const promptSeed = videoTpl
+      ? {
+        videoPromptTemplateId: videoTpl.id,
+        videoPromptTemplateTitle: videoTpl.title,
+        videoPromptTemplateBody: input.videoPromptTemplateBody ?? undefined,
+        videoPromptTemplateSource: videoTpl.source,
+      }
+      : {};
     return {
       kind: 'video',
       videoModel: input.videoModel,
       videoLength: input.videoLength,
       videoAspect: input.videoAspect,
+      ...promptSeed,
       ...inspirations,
     };
   }

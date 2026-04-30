@@ -182,10 +182,19 @@ function renderMetadataBlock(
     if (metadata.imageStyle) {
       lines.push(`- **styleNotes**: ${metadata.imageStyle}`);
     }
+    if (metadata.imagePromptTemplateTitle) {
+      lines.push(`- **promptTemplate**: ${metadata.imagePromptTemplateTitle}`);
+    }
     lines.push('');
     lines.push(
       'This is an **image** project. Plan the prompt carefully — describe subject, composition, lighting, palette, and references — then dispatch via the **media generation contract** (see the contract block at the end of this prompt) using `od media generate --surface image --model <imageModel>`. Reference the returned filename in your reply. Do NOT emit `<artifact>` HTML for media surfaces.',
     );
+    lines.push(...renderPromptTemplateSeed(
+      metadata.imagePromptTemplateTitle,
+      metadata.imagePromptTemplateBody,
+      metadata.imagePromptTemplateSource,
+      'image',
+    ));
   }
   if (metadata.kind === 'video') {
     lines.push(
@@ -197,6 +206,9 @@ function renderMetadataBlock(
     lines.push(
       `- **aspectRatio**: ${metadata.videoAspect ?? '(unknown — ask: 16:9, 9:16, 1:1)'}`,
     );
+    if (metadata.videoPromptTemplateTitle) {
+      lines.push(`- **promptTemplate**: ${metadata.videoPromptTemplateTitle}`);
+    }
     lines.push('');
     lines.push(
       'This is a **video** project. Plan the shotlist (1-3 shots for short clips), describe motion + camera, then dispatch via the **media generation contract** using `od media generate --surface video --model <videoModel> --length <seconds> --aspect <ratio>`. If the active workspace also ships a hyperframes-style interactive-video skill, prefer composing several shorter clips into a timeline rather than one monolithic generation. Do NOT emit `<artifact>` HTML.',
@@ -206,6 +218,12 @@ function renderMetadataBlock(
         'Special case: `hyperframes-html` is a local HTML-to-MP4 renderer, not a photoreal text-to-video model. Treat it like a motion design / title-card / product interstitial renderer. Ask at most one clarifying question, then dispatch immediately. Do not spend extra turns narrating environment checks, shot plans, or "I am about to generate" progress messages.',
       );
     }
+    lines.push(...renderPromptTemplateSeed(
+      metadata.videoPromptTemplateTitle,
+      metadata.videoPromptTemplateBody,
+      metadata.videoPromptTemplateSource,
+      'video',
+    ));
   }
   if (metadata.kind === 'audio') {
     lines.push(
@@ -258,6 +276,46 @@ function renderMetadataBlock(
   }
 
   return lines.join('\n');
+}
+
+/**
+ * Render a curated prompt-template seed (image / video) so the agent
+ * uses the proven structure as a starting point and adapts the user's
+ * brief into it, rather than writing the upstream prompt from scratch.
+ *
+ * The body is denormalized into ProjectMetadata at create time so this
+ * function never needs to fetch — it just stitches Markdown.
+ *
+ * Returns an empty list when no template was picked, so the metadata
+ * block stays compact for the common no-seed case.
+ */
+function renderPromptTemplateSeed(
+  title: string | undefined,
+  body: string | undefined,
+  source: { repo: string; license: string; author?: string; url?: string } | undefined,
+  surface: 'image' | 'video',
+): string[] {
+  if (!title || !body) return [];
+  const lines: string[] = [];
+  // Cap the body at ~6k chars — the curated corpus rarely exceeds that
+  // and a runaway template shouldn't eat the system prompt budget.
+  const truncated =
+    body.length > 6000
+      ? `${body.slice(0, 6000)}\n[... truncated (${body.length - 6000} chars)]`
+      : body;
+  const sourceLine = source
+    ? ` Source: ${source.author ?? 'community'} via ${source.repo} (${source.license}).`
+    : '';
+  lines.push('');
+  lines.push(`### Prompt template seed — "${title}"`);
+  lines.push(
+    `The user picked this curated ${surface} prompt as a starting point.${sourceLine} Use its structure, rhythm, and high-quality phrasing as the seed; merge in the user's specific brief; adapt subject, palette, character, and details to match what they're asking for. Do NOT ship the seed verbatim — it's a reference, not a deliverable. When dispatching to the media generator, your final prompt should clearly inherit the seed's quality and structure but reflect the user's request.`,
+  );
+  lines.push('');
+  lines.push('```text');
+  lines.push(truncated);
+  lines.push('```');
+  return lines;
 }
 
 /**
