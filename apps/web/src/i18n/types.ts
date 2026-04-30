@@ -102,6 +102,29 @@ export interface Dict {
   'settings.modelCustomLabel': string;
   'settings.modelCustomPlaceholder': string;
 
+  // Edit inspector (side panel for the in-preview Edit mode)
+  'editInspector.title': string;
+  'editInspector.empty': string;
+  'editInspector.close': string;
+  'editInspector.tag': string;
+  'editInspector.classes': string;
+  'editInspector.selectorAnchor': string;
+  'editInspector.selectorAnchorOdId': string;
+  'editInspector.selectorAnchorPath': string;
+  'editInspector.text': string;
+  'editInspector.textApply': string;
+  'editInspector.textDisabledHasChildren': string;
+  'editInspector.color': string;
+  'editInspector.background': string;
+  'editInspector.fontSize': string;
+  'editInspector.fontWeight': string;
+  'editInspector.textAlign': string;
+  'editInspector.padding': string;
+  'editInspector.margin': string;
+  'editInspector.borderRadius': string;
+  'editInspector.advanced': string;
+  'editInspector.reset': string;
+
   // Entry view / tabs
   'entry.tabDesigns': string;
   'entry.tabExamples': string;
@@ -393,6 +416,13 @@ export interface Dict {
   'fileViewer.tweaks': string;
   'fileViewer.comment': string;
   'fileViewer.edit': string;
+  'fileViewer.editEnabled': string;
+  'fileViewer.editDisabled': string;
+  'fileViewer.editSave': string;
+  'fileViewer.editSaving': string;
+  'fileViewer.editSaved': string;
+  'fileViewer.editSaveFailed': string;
+  'fileViewer.editExit': string;
   'fileViewer.draw': string;
   'fileViewer.zoomOut': string;
   'fileViewer.zoomIn': string;

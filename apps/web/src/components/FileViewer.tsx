@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { artifactRendererRegistry } from '../artifacts/renderer-registry';
 import { useT } from '../i18n';
 import type { Dict } from '../i18n/types';
@@ -7,12 +7,22 @@ import {
   fetchProjectFileText,
   projectFileUrl,
   projectRawUrl,
+  writeProjectTextFile,
 } from '../providers/registry';
 import type { ProjectFilePreview } from '../providers/registry';
+import {
+  envelope,
+  isEditMessage,
+  type EditElementSnapshot,
+  type EditEventToHost,
+  type EditMutation,
+  type EditSelector,
+} from '../runtime/edit-bridge';
 import { exportAsHtml, exportAsPdf, exportAsZip } from '../runtime/exports';
 import { buildSrcdoc } from '../runtime/srcdoc';
 import { saveTemplate } from '../state/projects';
 import type { ProjectFile } from '../types';
+import { EditInspector } from './EditInspector';
 import { Icon } from './Icon';
 
 type TranslateFn = (key: keyof Dict, vars?: Record<string, string | number>) => string;
@@ -202,11 +212,21 @@ function HtmlViewer({
   streaming: boolean;
 }) {
   const t = useT();
-  const [mode, setMode] = useState<'preview' | 'source'>('preview');
+  const [mode, setMode] = useState<'preview' | 'source' | 'edit'>('preview');
   const [source, setSource] = useState<string | null>(liveHtml ?? null);
   const [zoom, setZoom] = useState(100);
   const [presentMenuOpen, setPresentMenuOpen] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  // Edit mode runtime state. `editSelected` is the snapshot of the element
+  // currently outlined in the iframe; the Inspector reads from it.
+  // `editSaveState` drives the Save button label / colour.
+  const [editSelected, setEditSelected] = useState<EditElementSnapshot | null>(null);
+  const [editSaveState, setEditSaveState] = useState<
+    'idle' | 'saving' | 'saved' | 'error'
+  >('idle');
+  // Pending HTML-serialization requests we sent to the iframe — keyed by
+  // requestId so the Save handler can await the response.
+  const editHtmlRequests = useRef(new Map<string, (html: string) => void>());
   // Template save UX. We surface a transient "Saved" pill in the share
   // menu so the user gets feedback without a noisy toast layer.
   const [savingTemplate, setSavingTemplate] = useState(false);
@@ -250,8 +270,9 @@ function HtmlViewer({
     () => (source ? buildSrcdoc(source, {
       deck: effectiveDeck,
       baseHref: projectRawUrl(projectId, baseDirFor(file.name)),
+      editMode: mode === 'edit',
     }) : ''),
-    [source, effectiveDeck, projectId, file.name],
+    [source, effectiveDeck, projectId, file.name, mode],
   );
 
   useEffect(() => {
@@ -276,6 +297,115 @@ function HtmlViewer({
     if (!win) return;
     win.postMessage({ type: 'od:slide', action }, '*');
   }
+
+  // ---- Edit mode bridge -------------------------------------------------
+  // Listens for od:edit:* messages from the iframe shim (see
+  // runtime/edit-bridge.ts for the protocol). Sends commands back via
+  // editPost, which is also used by the Inspector's onApply.
+
+  const editPost = useCallback((msg: unknown) => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    win.postMessage(msg, '*');
+  }, []);
+
+  useEffect(() => {
+    if (mode !== 'edit') {
+      // Leaving edit mode — clear panel state. The iframe srcDoc itself
+      // rebuilds (without the shim) when `mode` changes via the useMemo
+      // dep, so no explicit od:edit:disable is needed.
+      setEditSelected(null);
+      return;
+    }
+    function onMessage(ev: MessageEvent) {
+      const data = ev?.data;
+      if (!isEditMessage(data)) return;
+      const msg = data as EditEventToHost;
+      switch (msg.type) {
+        case 'od:edit:ready':
+          // Shim is up — turn on edit capture. We don't enable inside
+          // editPost on iframe load because Next.js's iframe might fire
+          // load before the shim's IIFE finishes.
+          editPost(envelope('od:edit:enable', null));
+          break;
+        case 'od:edit:select':
+          setEditSelected(msg.data);
+          break;
+        case 'od:edit:deselect':
+          setEditSelected(null);
+          break;
+        case 'od:edit:html': {
+          const resolver = editHtmlRequests.current.get(msg.data.requestId);
+          if (resolver) {
+            editHtmlRequests.current.delete(msg.data.requestId);
+            resolver(msg.data.html);
+          }
+          break;
+        }
+        case 'od:edit:applied':
+          // Optimistic — Inspector already reflected the change locally.
+          break;
+        case 'od:edit:error':
+          // Surface in console; full-screen toast feels heavy for the V2
+          // ship. Most likely cause: 'has-children' from text edit on a
+          // container element, which the Inspector already disables.
+          console.warn('[od:edit] error from iframe:', msg.data);
+          break;
+      }
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [mode, editPost]);
+
+  const editApply = useCallback(
+    (selector: EditSelector, mutation: EditMutation) => {
+      editPost(envelope('od:edit:apply', { selector, mutation }));
+    },
+    [editPost],
+  );
+
+  // Save flow: ask the iframe for its current serialized HTML, then PUT
+  // it through the project files API so the on-disk file matches what
+  // the user sees. The daemon writes index.html atomically; the file
+  // tree picks up the new mtime on the next refresh.
+  const editSave = useCallback(async () => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    setEditSaveState('saving');
+    const requestId = `od-edit-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const html = await new Promise<string | null>((resolve) => {
+      const timeout = window.setTimeout(() => {
+        editHtmlRequests.current.delete(requestId);
+        resolve(null);
+      }, 5000);
+      editHtmlRequests.current.set(requestId, (h) => {
+        window.clearTimeout(timeout);
+        resolve(h);
+      });
+      editPost(envelope('od:edit:get-html', { requestId }));
+    });
+    if (!html) {
+      setEditSaveState('error');
+      window.setTimeout(() => setEditSaveState('idle'), 2500);
+      return;
+    }
+    const written = await writeProjectTextFile(projectId, file.name, html);
+    if (!written) {
+      setEditSaveState('error');
+      window.setTimeout(() => setEditSaveState('idle'), 2500);
+      return;
+    }
+    // Sync local state to the saved HTML so re-entering preview mode
+    // doesn't briefly flash the old render.
+    setSource(html);
+    setEditSaveState('saved');
+    window.setTimeout(() => setEditSaveState('idle'), 1500);
+  }, [editPost, projectId, file.name]);
+
+  const exitEditMode = useCallback(() => {
+    setMode('preview');
+    setEditSelected(null);
+  }, []);
 
   // Keyboard nav on the host, so the user can press ←/→ even when focus
   // is on the chat composer or any other host control.
@@ -513,15 +643,54 @@ function HtmlViewer({
             <span>{t('fileViewer.comment')}</span>
           </button>
           <button
-            className="viewer-action"
+            className={`viewer-action ${mode === 'edit' ? 'active' : ''}`}
             type="button"
-            disabled
-            data-coming-soon="true"
+            disabled={streaming || source === null}
             title={t('fileViewer.edit')}
+            onClick={() => setMode(mode === 'edit' ? 'preview' : 'edit')}
+            aria-pressed={mode === 'edit'}
           >
             <Icon name="edit" size={13} />
             <span>{t('fileViewer.edit')}</span>
           </button>
+          {mode === 'edit' ? (
+            <>
+              <button
+                className="viewer-action"
+                type="button"
+                onClick={() => void editSave()}
+                disabled={editSaveState === 'saving'}
+                title={t('fileViewer.editSave')}
+                style={
+                  editSaveState === 'saved'
+                    ? { color: 'var(--success, #17A34A)' }
+                    : editSaveState === 'error'
+                      ? { color: 'var(--danger, #DC2626)' }
+                      : undefined
+                }
+              >
+                <Icon name="check" size={13} />
+                <span>
+                  {editSaveState === 'saving'
+                    ? t('fileViewer.editSaving')
+                    : editSaveState === 'saved'
+                      ? t('fileViewer.editSaved')
+                      : editSaveState === 'error'
+                        ? t('fileViewer.editSaveFailed')
+                        : t('fileViewer.editSave')}
+                </span>
+              </button>
+              <button
+                className="viewer-action"
+                type="button"
+                onClick={exitEditMode}
+                title={t('fileViewer.editExit')}
+              >
+                <Icon name="close" size={13} />
+                <span>{t('fileViewer.editExit')}</span>
+              </button>
+            </>
+          ) : null}
           <button
             className="viewer-action"
             type="button"
@@ -690,28 +859,49 @@ function HtmlViewer({
           ) : null}
         </div>
       </div>
-      <div className="viewer-body" ref={previewBodyRef}>
+      <div
+        className={`viewer-body ${mode === 'edit' ? 'viewer-body-edit' : ''}`}
+        ref={previewBodyRef}
+        style={mode === 'edit' ? { display: 'flex', flexDirection: 'row' } : undefined}
+      >
         {source === null ? (
           <div className="viewer-empty">{t('fileViewer.loading')}</div>
-        ) : mode === 'preview' ? (
-          <div
-            style={{
-              width: `${100 / previewScale}%`,
-              height: `${100 / previewScale}%`,
-              transform: `scale(${previewScale})`,
-              transformOrigin: '0 0',
-            }}
-          >
-            <iframe
-              ref={iframeRef}
-              data-testid="artifact-preview-frame"
-              title={file.name}
-              sandbox="allow-scripts"
-              srcDoc={srcDoc}
-            />
-          </div>
-        ) : (
+        ) : mode === 'source' ? (
           <pre className="viewer-source">{source}</pre>
+        ) : (
+          // preview AND edit share the iframe — only difference is the
+          // shim injected into srcDoc and the side panel below.
+          <>
+            <div
+              style={{
+                flex: '1 1 auto',
+                minWidth: 0,
+                width: mode === 'edit' ? 'auto' : `${100 / previewScale}%`,
+                height: mode === 'edit' ? '100%' : `${100 / previewScale}%`,
+                transform: mode === 'edit' ? undefined : `scale(${previewScale})`,
+                transformOrigin: '0 0',
+              }}
+            >
+              <iframe
+                ref={iframeRef}
+                data-testid="artifact-preview-frame"
+                title={file.name}
+                sandbox="allow-scripts"
+                srcDoc={srcDoc}
+              />
+            </div>
+            {mode === 'edit' ? (
+              <EditInspector
+                selected={editSelected}
+                onApply={(mutation) => {
+                  if (!editSelected) return;
+                  editApply(editSelected.selector, mutation);
+                }}
+                onDeselect={() => setEditSelected(null)}
+                onClose={exitEditMode}
+              />
+            ) : null}
+          </>
         )}
       </div>
       {inTabPresent && source ? (

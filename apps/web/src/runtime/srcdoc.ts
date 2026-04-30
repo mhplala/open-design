@@ -18,7 +18,7 @@ import { BASE_HREF } from './base-path';
 
 export function buildSrcdoc(
   html: string,
-  options: { deck?: boolean; baseHref?: string } = {}
+  options: { deck?: boolean; baseHref?: string; editMode?: boolean } = {}
 ): string {
   const head = html.trimStart().slice(0, 64).toLowerCase();
   const isFullDoc = head.startsWith("<!doctype") || head.startsWith("<html");
@@ -43,8 +43,9 @@ export function buildSrcdoc(
     ? injectBaseHref(wrapped, effectiveBaseHref)
     : wrapped;
   const withShim = injectSandboxShim(withBase);
-  if (!options.deck) return withShim;
-  return injectDeckBridge(withShim);
+  const withDeck = options.deck ? injectDeckBridge(withShim) : withShim;
+  if (!options.editMode) return withDeck;
+  return injectEditShim(withDeck);
 }
 
 function injectBaseHref(doc: string, baseHref: string): string {
@@ -302,4 +303,266 @@ function injectDeckBridge(doc: string): string {
   if (/<\/body>/i.test(doc))
     return doc.replace(/<\/body>/i, `${script}</body>`);
   return doc + script;
+}
+
+// Edit-mode shim. When the host enables "edit" on the FileViewer it sets
+// `editMode: true` on buildSrcdoc; we inject a <style> + <script> pair that:
+//   * highlights the element under the cursor (via `data-od-edit-hover`)
+//   * tracks the currently-selected element (via `data-od-edit-selected`)
+//   * intercepts clicks (preventDefault + stopPropagation) so links / buttons
+//     don't fire navigation while editing
+//   * speaks the `od:edit:*` postMessage protocol defined in edit-bridge.ts
+//
+// The protocol helpers (`selectorFor`, `resolveSelector`, `buildPathSelector`,
+// `cssEscape`) are inlined verbatim from edit-bridge.ts because the iframe
+// runs in its own JS world and can't `import` from the host bundle. Keep them
+// in sync by hand if the protocol module changes.
+//
+// EDIT_STYLE_KEYS is also inlined as a literal array — adding a new key
+// requires updating both the TS const and this string. Same caveat as the
+// deck bridge: any divergence shows up as missing fields in the snapshot.
+function injectEditShim(doc: string): string {
+  const style = `<style data-od-edit-style>
+[data-od-edit-hover] { outline: 2px dashed #2F6FEB; outline-offset: -2px; cursor: pointer; }
+[data-od-edit-selected] { outline: 2px solid #2F6FEB; outline-offset: -2px; }
+</style>`;
+  const script = `<script>(function(){
+  var VERSION = 1;
+  var STYLE_KEYS = [
+    'color','backgroundColor','fontFamily','fontSize','fontWeight',
+    'lineHeight','letterSpacing','textAlign',
+    'paddingTop','paddingRight','paddingBottom','paddingLeft',
+    'marginTop','marginRight','marginBottom','marginLeft',
+    'borderRadius','borderColor','borderWidth'
+  ];
+  function envelope(type, data){ return { type: type, version: VERSION, data: data }; }
+  function isEditMessage(msg){
+    if (!msg || typeof msg !== 'object') return false;
+    return typeof msg.type === 'string' && msg.type.indexOf('od:edit:') === 0 && msg.version === VERSION;
+  }
+  function cssEscape(value){
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(value);
+    return String(value).replace(/(["\\\\])/g, '\\\\$1');
+  }
+  function buildPathSelector(node){
+    var segments = [];
+    var cur = node;
+    while (cur && cur.nodeType === 1 && cur.tagName.toLowerCase() !== 'html') {
+      var parent = cur.parentElement;
+      if (!parent) break;
+      var nth = 1;
+      var sibling = cur.previousElementSibling;
+      while (sibling) {
+        if (sibling.tagName === cur.tagName) nth++;
+        sibling = sibling.previousElementSibling;
+      }
+      segments.unshift(cur.tagName.toLowerCase() + ':nth-of-type(' + nth + ')');
+      cur = parent;
+    }
+    return segments;
+  }
+  function selectorFor(node){
+    var odId = node.getAttribute && node.getAttribute('data-od-id');
+    if (odId && odId.trim().length > 0) return { kind: 'od-id', value: odId };
+    return { kind: 'path', segments: buildPathSelector(node) };
+  }
+  function resolveSelector(root, selector){
+    if (!selector) return null;
+    if (selector.kind === 'od-id') {
+      return root.querySelector('[data-od-id="' + cssEscape(selector.value) + '"]');
+    }
+    if (!selector.segments || !selector.segments.length) return null;
+    try { return root.querySelector(selector.segments.join(' > ')); }
+    catch (_) { return null; }
+  }
+  function post(type, data){
+    try { window.parent.postMessage(envelope(type, data), '*'); } catch (_) {}
+  }
+  function snapshot(el){
+    var cs = null;
+    try { cs = window.getComputedStyle(el); } catch (_) {}
+    var styles = {};
+    for (var i = 0; i < STYLE_KEYS.length; i++) {
+      var k = STYLE_KEYS[i];
+      styles[k] = cs ? (cs[k] || '') : '';
+    }
+    var text = '';
+    try { text = (el.textContent == null ? '' : String(el.textContent)).slice(0, 4000); } catch (_) {}
+    return {
+      selector: selectorFor(el),
+      tag: el.tagName.toLowerCase(),
+      id: el.id || null,
+      className: el.getAttribute('class') == null ? '' : el.getAttribute('class'),
+      textContent: text,
+      hasChildren: el.childElementCount > 0,
+      styles: styles
+    };
+  }
+
+  var enabled = false;
+  var hoverEl = null;
+  var selectedEl = null;
+  // Inline-style snapshots so disable() can restore link/button defaults
+  // (we set pointer-events:auto + cursor:pointer-style overrides via the
+  // hover attribute; nothing else is mutated, so disable just clears attrs).
+  function clearHover(){
+    if (hoverEl) {
+      try { hoverEl.removeAttribute('data-od-edit-hover'); } catch (_) {}
+      hoverEl = null;
+    }
+  }
+  function clearSelected(){
+    if (selectedEl) {
+      try { selectedEl.removeAttribute('data-od-edit-selected'); } catch (_) {}
+      selectedEl = null;
+    }
+  }
+  function isEditableTarget(el){
+    if (!el || el.nodeType !== 1) return false;
+    if (el === document.body || el === document.documentElement) return false;
+    if (!el.parentElement) return false;
+    return true;
+  }
+  function onMouseOver(ev){
+    if (!enabled) return;
+    var t = ev.target;
+    if (!isEditableTarget(t)) { clearHover(); return; }
+    if (t === hoverEl) return;
+    clearHover();
+    hoverEl = t;
+    try { hoverEl.setAttribute('data-od-edit-hover', ''); } catch (_) {}
+  }
+  function onMouseOut(ev){
+    if (!enabled) return;
+    // related target outside iframe -> clear; otherwise let mouseover swap it
+    var related = ev.relatedTarget;
+    if (!related) clearHover();
+  }
+  function onClick(ev){
+    if (!enabled) return;
+    var t = ev.target;
+    if (!isEditableTarget(t)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    // Best-effort: stop other listeners on the same target from firing.
+    if (typeof ev.stopImmediatePropagation === 'function') {
+      try { ev.stopImmediatePropagation(); } catch (_) {}
+    }
+    if (selectedEl && selectedEl !== t) {
+      try { selectedEl.removeAttribute('data-od-edit-selected'); } catch (_) {}
+    }
+    selectedEl = t;
+    try { selectedEl.setAttribute('data-od-edit-selected', ''); } catch (_) {}
+    post('od:edit:select', snapshot(selectedEl));
+  }
+  function onKeyDown(ev){
+    if (!enabled) return;
+    if (ev.key === 'Escape') {
+      if (selectedEl) {
+        clearSelected();
+        post('od:edit:deselect', null);
+      }
+    }
+  }
+  // Capture-phase so the iframe's own click handlers (links, buttons,
+  // custom navs) don't get a chance to fire while editing.
+  function enable(){
+    if (enabled) return;
+    enabled = true;
+    document.addEventListener('mouseover', onMouseOver, true);
+    document.addEventListener('mouseout', onMouseOut, true);
+    document.addEventListener('click', onClick, true);
+    document.addEventListener('keydown', onKeyDown, true);
+  }
+  function disable(){
+    if (!enabled) return;
+    enabled = false;
+    document.removeEventListener('mouseover', onMouseOver, true);
+    document.removeEventListener('mouseout', onMouseOut, true);
+    document.removeEventListener('click', onClick, true);
+    document.removeEventListener('keydown', onKeyDown, true);
+    clearHover();
+    clearSelected();
+  }
+  function selectBySelector(selector){
+    var el = resolveSelector(document, selector);
+    if (!el) {
+      post('od:edit:error', { code: 'not-found', message: 'selector did not resolve' });
+      return;
+    }
+    if (selectedEl && selectedEl !== el) {
+      try { selectedEl.removeAttribute('data-od-edit-selected'); } catch (_) {}
+    }
+    selectedEl = el;
+    try { selectedEl.setAttribute('data-od-edit-selected', ''); } catch (_) {}
+    try { el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' }); } catch (_) {}
+    post('od:edit:select', snapshot(el));
+  }
+  function applyMutation(selector, mutation){
+    var el = resolveSelector(document, selector);
+    if (!el) {
+      post('od:edit:error', { code: 'not-found', message: 'selector did not resolve' });
+      return;
+    }
+    if (mutation && typeof mutation.text === 'string') {
+      if (el.childElementCount > 0) {
+        post('od:edit:error', { code: 'has-children', message: 'cannot replace text on container with element children' });
+        return;
+      }
+      try { el.textContent = mutation.text; }
+      catch (e) {
+        post('od:edit:error', { code: 'apply-failed', message: String(e && e.message || e) });
+        return;
+      }
+    }
+    if (mutation && mutation.styles && typeof mutation.styles === 'object') {
+      for (var i = 0; i < STYLE_KEYS.length; i++) {
+        var k = STYLE_KEYS[i];
+        if (Object.prototype.hasOwnProperty.call(mutation.styles, k)) {
+          var v = mutation.styles[k];
+          try { el.style[k] = (v == null ? '' : String(v)); } catch (_) {}
+        }
+      }
+    }
+    post('od:edit:applied', { selector: selector });
+  }
+  function getHtml(requestId){
+    var html = '';
+    try { html = document.documentElement.outerHTML; } catch (_) {}
+    post('od:edit:html', { html: html, requestId: requestId });
+  }
+  window.addEventListener('message', function(ev){
+    var data = ev && ev.data;
+    if (!isEditMessage(data)) return;
+    var d = data.data;
+    switch (data.type) {
+      case 'od:edit:enable': enable(); break;
+      case 'od:edit:disable': disable(); break;
+      case 'od:edit:select-by-selector':
+        if (d && d.selector) selectBySelector(d.selector);
+        break;
+      case 'od:edit:apply':
+        if (d && d.selector) applyMutation(d.selector, d.mutation || {});
+        break;
+      case 'od:edit:get-html':
+        getHtml(d && typeof d.requestId === 'string' ? d.requestId : '');
+        break;
+    }
+  });
+  // Initial signal so the host can flush any queued commands.
+  post('od:edit:ready', { url: location.href });
+})();</script>`;
+  // Style goes at the top of <head> so the highlight selectors win against
+  // late-defined artifact CSS (specificity ties resolve to last-declared).
+  let withStyle = doc;
+  if (/<head[^>]*>/i.test(doc)) {
+    withStyle = doc.replace(/<head[^>]*>/i, (m) => `${m}${style}`);
+  } else if (/<body[^>]*>/i.test(doc)) {
+    withStyle = doc.replace(/<body[^>]*>/i, (m) => `${style}${m}`);
+  } else {
+    withStyle = style + doc;
+  }
+  if (/<\/body>/i.test(withStyle))
+    return withStyle.replace(/<\/body>/i, `${script}</body>`);
+  return withStyle + script;
 }
