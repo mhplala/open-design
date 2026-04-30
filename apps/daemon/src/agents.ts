@@ -136,6 +136,16 @@ export const AGENT_DEFS = [
         args.push('--add-dir', ...dirs);
       }
       args.push('--permission-mode', 'bypassPermissions');
+      // Disable Claude Code's interactive built-in tools that have no
+      // affordance in OD's web UI:
+      //   - AskUserQuestion: prompts the user for a multiple-choice answer
+      //     in the terminal; OD has no way to surface that, so the tool
+      //     hangs and surfaces as `error` in the chat. The OD system
+      //     prompt already instructs the agent to use its own
+      //     `<question-form>` markdown syntax for this purpose, but newer
+      //     Claude Code releases bias toward the native tool unless
+      //     explicitly disallowed.
+      args.push('--disallowed-tools', 'AskUserQuestion');
       return args;
     },
     streamFormat: 'claude-stream-json',
