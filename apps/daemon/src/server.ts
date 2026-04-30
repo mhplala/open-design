@@ -1355,13 +1355,24 @@ export async function startServer({ port = 7456, returnServer = false } = {}) {
       url = clean + '/v1/chat/completions';
     }
 
-    // Force MiMo to behave as a pure text generator (no tool calls)
+    // Force MiMo to behave as a pure text generator (no tool calls).
+    // MiMo v2.5-pro advertises 1M context / 128k output, so allow the full
+    // output budget — short caps were the main cause of truncated artifacts.
     const isMiMo = model.toLowerCase().startsWith('mimo');
-    console.log(`[proxy] ${req.method} ${parsed.hostname} model=${model} miMo=${isMiMo}`);
+    const maxTokens = isMiMo ? 131072 : 8192;
+
+    const sysLen = (systemPrompt || '').length;
+    const userLen = Array.isArray(messages)
+      ? messages.reduce((n, m) => n + (typeof m?.content === 'string' ? m.content.length : 0), 0)
+      : 0;
+    console.log(
+      `[proxy] ${req.method} ${parsed.hostname} model=${model} miMo=${isMiMo} ` +
+      `maxTokens=${maxTokens} sysChars=${sysLen} userChars=${userLen}`,
+    );
 
     const payload = {
       model,
-      max_tokens: 8192,
+      max_tokens: maxTokens,
       stream: true,
       ...(isMiMo ? { tool_choice: 'none', tools: [] } : {}),
       messages: [
@@ -1402,6 +1413,20 @@ export async function startServer({ port = 7456, returnServer = false } = {}) {
     const reader = upstream.body.getReader();
     const decoder = new TextDecoder();
     let buf = '';
+    const startedAt = Date.now();
+    let totalChars = 0;
+    let finishReason = null;
+    let usage = null;
+    const logSummary = (suffix = '') => {
+      const ms = Date.now() - startedAt;
+      const usagePart = usage
+        ? ` usage=${usage.prompt_tokens ?? '?'}/${usage.completion_tokens ?? '?'}`
+        : '';
+      console.log(
+        `[proxy] stream ended model=${model} chars=${totalChars} ms=${ms} ` +
+        `finish=${finishReason ?? 'none'}${usagePart}${suffix}`,
+      );
+    };
 
     while (true) {
       const { value, done } = await reader.read();
@@ -1415,15 +1440,20 @@ export async function startServer({ port = 7456, returnServer = false } = {}) {
         if (!line.startsWith('data: ')) continue;
         const payload = line.slice(6).trim();
         if (payload === '[DONE]') {
+          logSummary(' [DONE]');
           send('end', {});
           return sse.end();
         }
         try {
           const chunk = JSON.parse(payload);
-          const delta = chunk.choices?.[0]?.delta;
+          const choice = chunk.choices?.[0];
+          const delta = choice?.delta;
+          if (choice?.finish_reason) finishReason = choice.finish_reason;
+          if (chunk.usage) usage = chunk.usage;
           if (delta) {
             let text = delta.content ?? '';
             if (text) {
+              totalChars += text.length;
               send('delta', { text });
             }
             // Structured tool_calls from the API (not in content)
@@ -1442,6 +1472,7 @@ export async function startServer({ port = 7456, returnServer = false } = {}) {
       }
     }
 
+    logSummary();
     send('end', {});
     sse.end();
   });

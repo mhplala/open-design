@@ -14,6 +14,8 @@
  *   { type: 'od:slide-state', active: number, count: number }
  * after every navigation so the host can render its own counter / dots.
  */
+import { BASE_HREF } from './base-path';
+
 export function buildSrcdoc(
   html: string,
   options: { deck?: boolean; baseHref?: string } = {}
@@ -30,7 +32,16 @@ export function buildSrcdoc(
   </head>
   <body>${html}</body>
 </html>`;
-  const withBase = options.baseHref ? injectBaseHref(wrapped, options.baseHref) : wrapped;
+  // Default to the deployment BASE_HREF so artifact-emitted absolute paths
+  // like `/frames/...` and `/api/projects/.../raw/...` resolve under the
+  // app's mount point instead of the host root (which may be a different
+  // app on shared hosts). When deployed at the root, BASE_HREF is "/" and
+  // we skip injection so nothing changes.
+  const effectiveBaseHref =
+    options.baseHref ?? (BASE_HREF !== '/' ? BASE_HREF : undefined);
+  const withBase = effectiveBaseHref
+    ? injectBaseHref(wrapped, effectiveBaseHref)
+    : wrapped;
   const withShim = injectSandboxShim(withBase);
   if (!options.deck) return withShim;
   return injectDeckBridge(withShim);

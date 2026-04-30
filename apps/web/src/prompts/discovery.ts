@@ -22,6 +22,13 @@
  * theme-rhythm rules).
  */
 import { renderDirectionFormBody, renderDirectionSpecBlock } from './directions';
+import { BASE_PATH } from '../runtime/base-path';
+
+// Frames served by the daemon at /frames/. When the app is mounted at a
+// subpath (BASE_PATH=/design), AI-emitted absolute URLs need that prefix —
+// `<base href>` only affects relative URLs, so we bake the absolute prefix
+// into the prompt examples themselves.
+const FRAMES = `${BASE_PATH}/frames`;
 
 export const DISCOVERY_AND_PHILOSOPHY = `# OD core directives (read first — these override anything later in this prompt)
 
@@ -215,13 +222,13 @@ Slides: persist position to localStorage (the simple-deck and guizang-ppt seeds 
 Prototypes: include a small floating Tweaks panel exposing 3–5 design knobs (primary colour, type scale, dark mode, layout variant) when it adds value.
 
 ### H. Multi-device + multi-screen layouts — use shared frames
-When the brief calls for showing the SAME product across multiple devices (desktop + tablet + phone) or showing MULTIPLE screens of the same app side-by-side (onboarding 1 → 2 → 3, or feed → detail → checkout), do NOT re-draw a phone/laptop frame from scratch. The repo ships pixel-accurate shared frames at \`/frames/\` (served as static assets):
+When the brief calls for showing the SAME product across multiple devices (desktop + tablet + phone) or showing MULTIPLE screens of the same app side-by-side (onboarding 1 → 2 → 3, or feed → detail → checkout), do NOT re-draw a phone/laptop frame from scratch. The repo ships pixel-accurate shared frames at \`${FRAMES}/\` (served as static assets):
 
-- \`/frames/iphone-15-pro.html\`  — 390 × 844, Dynamic Island
-- \`/frames/android-pixel.html\`  — 412 × 900, punch-hole + nav bar
-- \`/frames/ipad-pro.html\`        — iPad Pro 11"
-- \`/frames/macbook.html\`         — MacBook Pro 14" with notch + chin
-- \`/frames/browser-chrome.html\`  — macOS Safari window with traffic lights
+- \`${FRAMES}/iphone-15-pro.html\`  — 390 × 844, Dynamic Island
+- \`${FRAMES}/android-pixel.html\`  — 412 × 900, punch-hole + nav bar
+- \`${FRAMES}/ipad-pro.html\`        — iPad Pro 11"
+- \`${FRAMES}/macbook.html\`         — MacBook Pro 14" with notch + chin
+- \`${FRAMES}/browser-chrome.html\`  — macOS Safari window with traffic lights
 
 Each accepts \`?screen=<path>\` and embeds that path inside the device chrome. The recommended pattern for a multi-screen prototype:
 
@@ -237,11 +244,11 @@ project/
 Then in \`index.html\` use:
 
 \`\`\`html
-<iframe src="/frames/iphone-15-pro.html?screen=screens/01-onboarding.html"
+<iframe src="${FRAMES}/iphone-15-pro.html?screen=screens/01-onboarding.html"
         width="390" height="844" loading="lazy"></iframe>
-<iframe src="/frames/iphone-15-pro.html?screen=screens/02-paywall.html"
+<iframe src="${FRAMES}/iphone-15-pro.html?screen=screens/02-paywall.html"
         width="390" height="844" loading="lazy"></iframe>
-<iframe src="/frames/iphone-15-pro.html?screen=screens/03-home.html"
+<iframe src="${FRAMES}/iphone-15-pro.html?screen=screens/03-home.html"
         width="390" height="844" loading="lazy"></iframe>
 \`\`\`
 

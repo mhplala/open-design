@@ -18,6 +18,13 @@ const DAEMON_ORIGIN = `http://127.0.0.1:${DAEMON_PORT}`;
 // view.
 const isProd = process.env.NODE_ENV !== 'development';
 
+// Optional subpath deployment. When set, both basePath and assetPrefix
+// pick it up so Next.js routing, static asset URLs, and the bundled
+// runtime BASE_PATH constant agree. Build with e.g.
+//   OD_BASE_PATH=/design NEXT_PUBLIC_OD_BASE_PATH=/design pnpm build
+// (NEXT_PUBLIC_ is required for the constant to land in the client bundle.)
+const BASE_PATH = process.env.OD_BASE_PATH || process.env.NEXT_PUBLIC_OD_BASE_PATH || '';
+
 const WEB_ROOT = dirname(fileURLToPath(import.meta.url));
 
 function resolveDevDistDir() {
@@ -39,6 +46,7 @@ const DEV_TSCONFIG_PATH = resolveDevTsconfigPath();
 const nextConfig: NextConfig = {
   allowedDevOrigins: ['127.0.0.1'],
   reactStrictMode: true,
+  ...(BASE_PATH ? { basePath: BASE_PATH, assetPrefix: BASE_PATH } : {}),
   ...(DEV_TSCONFIG_PATH ? { typescript: { tsconfigPath: DEV_TSCONFIG_PATH } } : {}),
   // Keep the bundle output predictable so the daemon's STATIC_DIR can point
   // at it without any glob trickery.
