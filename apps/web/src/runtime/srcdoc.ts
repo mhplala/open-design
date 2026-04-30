@@ -68,6 +68,26 @@ function escapeAttr(value: string): string {
     .replace(/>/g, '&gt;');
 }
 
+/**
+ * Inverse of buildSrcdoc — recover the user's HTML by stripping anything
+ * we injected at runtime. Used by the Edit-mode Save flow before writing
+ * the iframe's serialized DOM back to disk so the on-disk file doesn't
+ * accumulate sandbox shims, edit-mode outlines, or deck nav stubs.
+ *
+ * Targets:
+ *   - <script data-od-injected="..."> ... </script>  (sandbox / deck / edit)
+ *   - <style  data-od-injected="..."> ... </style>   (deck-fix / edit-style)
+ *   - <base ...>                                     (base href for subpath)
+ *   - data-od-edit-hover / data-od-edit-selected     (hover + selection markers)
+ */
+export function stripInjections(html: string): string {
+  return html
+    .replace(/<script\s+data-od-injected="[^"]*"[^>]*>[\s\S]*?<\/script>\s*/g, '')
+    .replace(/<style\s+data-od-injected="[^"]*"[^>]*>[\s\S]*?<\/style>\s*/g, '')
+    .replace(/<base\b[^>]*\/?>\s*/gi, '')
+    .replace(/\s+data-od-edit-(?:hover|selected)(?:="[^"]*")?/g, '');
+}
+
 // Sandboxed iframes (we use `sandbox="allow-scripts"`) without
 // `allow-same-origin` raise a SecurityError on first `localStorage` /
 // `sessionStorage` access. Many freeform-generated decks call
@@ -77,7 +97,7 @@ function escapeAttr(value: string): string {
 // in-memory shim BEFORE any user script runs so those decks degrade
 // gracefully (position just doesn't persist across reloads).
 function injectSandboxShim(doc: string): string {
-  const shim = `<script>(function(){
+  const shim = `<script data-od-injected="sandbox-shim">(function(){
   function makeStore(){
     var data = {};
     var api = {
@@ -132,7 +152,7 @@ function injectSandboxShim(doc: string): string {
 // preview that's smaller than 1920x1080 — exactly what users see in the
 // sandbox iframe. `place-content: center` centers the track itself.
 function injectDeckBridge(doc: string): string {
-  const styleFix = `<style data-od-deck-fix>
+  const styleFix = `<style data-od-injected="deck-fix">
 .stage, .deck-stage, .deck-shell { place-content: center !important; }
 </style>`;
   const docWithStyle = /<\/head>/i.test(doc)
@@ -141,7 +161,7 @@ function injectDeckBridge(doc: string): string {
     ? doc.replace(/<head[^>]*>/i, (m) => m + styleFix)
     : styleFix + doc;
   doc = docWithStyle;
-  const script = `<script>(function(){
+  const script = `<script data-od-injected="deck-bridge">(function(){
   function slides(){ return document.querySelectorAll('.slide'); }
   function scroller(){
     if (document.body && document.body.scrollWidth > document.body.clientWidth + 1) return document.body;
@@ -322,11 +342,11 @@ function injectDeckBridge(doc: string): string {
 // requires updating both the TS const and this string. Same caveat as the
 // deck bridge: any divergence shows up as missing fields in the snapshot.
 function injectEditShim(doc: string): string {
-  const style = `<style data-od-edit-style>
+  const style = `<style data-od-injected="edit-style">
 [data-od-edit-hover] { outline: 2px dashed #2F6FEB; outline-offset: -2px; cursor: pointer; }
 [data-od-edit-selected] { outline: 2px solid #2F6FEB; outline-offset: -2px; }
 </style>`;
-  const script = `<script>(function(){
+  const script = `<script data-od-injected="edit-shim">(function(){
   var VERSION = 1;
   var STYLE_KEYS = [
     'color','backgroundColor','fontFamily','fontSize','fontWeight',

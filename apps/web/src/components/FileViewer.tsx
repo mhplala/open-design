@@ -19,7 +19,7 @@ import {
   type EditSelector,
 } from '../runtime/edit-bridge';
 import { exportAsHtml, exportAsPdf, exportAsZip } from '../runtime/exports';
-import { buildSrcdoc } from '../runtime/srcdoc';
+import { buildSrcdoc, stripInjections } from '../runtime/srcdoc';
 import { saveTemplate } from '../state/projects';
 import type { ProjectFile } from '../types';
 import { EditInspector } from './EditInspector';
@@ -389,15 +389,18 @@ function HtmlViewer({
       window.setTimeout(() => setEditSaveState('idle'), 2500);
       return;
     }
-    const written = await writeProjectTextFile(projectId, file.name, html);
+    // Strip our runtime injections (sandbox shim, edit shim, deck-fix
+    // styles, base href, selection attrs) before persisting — otherwise
+    // the on-disk file accumulates them and re-entering preview mode
+    // shows lingering blue selection outlines from the last edit.
+    const cleaned = stripInjections(html);
+    const written = await writeProjectTextFile(projectId, file.name, cleaned);
     if (!written) {
       setEditSaveState('error');
       window.setTimeout(() => setEditSaveState('idle'), 2500);
       return;
     }
-    // Sync local state to the saved HTML so re-entering preview mode
-    // doesn't briefly flash the old render.
-    setSource(html);
+    setSource(cleaned);
     setEditSaveState('saved');
     window.setTimeout(() => setEditSaveState('idle'), 1500);
   }, [editPost, projectId, file.name]);
