@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createHtmlArtifactManifest } from '../artifacts/manifest';
 import { createArtifactParser } from '../artifacts/parser';
+import { generateId } from '../runtime/uuid';
 import { useT } from '../i18n';
 import { streamMessage } from '../providers/anthropic';
 import { streamViaDaemon } from '../providers/daemon';
@@ -343,7 +344,7 @@ export function ProjectView({
       setError(null);
       const startedAt = Date.now();
       const userMsg: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: 'user',
         content: prompt,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -358,7 +359,7 @@ export function ProjectView({
         config.mode === 'daemon'
           ? assistantAgentDisplayName(config.agentId, selectedAgent?.name)
           : 'Anthropic API';
-      const assistantId = crypto.randomUUID();
+      const assistantId = generateId();
       const assistantMsg: ChatMessage = {
         id: assistantId,
         role: 'assistant',
