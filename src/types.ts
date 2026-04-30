@@ -187,6 +187,57 @@ export interface DesignSystemDetail extends DesignSystemSummary {
   body: string;
 }
 
+// Prompt templates — curated, ready-to-tweak prompts for image / video
+// generation. Sourced from public CC BY 4.0 / Apache 2.0 prompt libraries
+// (see CREDITS.md) and stored as JSON under `prompt-templates/<surface>/`.
+// Used both as a browse-and-preview gallery (own entry-header tab) and as
+// an optional seed inside the new-project panel — picking one writes the
+// title + body into the project's metadata so the agent can adapt the
+// template to the user's brief instead of writing a prompt from scratch.
+export interface PromptTemplateSource {
+  /** Upstream repository identifier, e.g. `YouMind-OpenLab/awesome-gpt-image-2`. */
+  repo: string;
+  /** SPDX-style license tag, e.g. `CC-BY-4.0`. */
+  license: string;
+  /** Original prompt author handle (Twitter / GitHub) when known. */
+  author?: string;
+  /** Permalink to the original post / PR for verification. */
+  url?: string;
+}
+
+export interface PromptTemplateSummary {
+  id: string;
+  surface: 'image' | 'video';
+  title: string;
+  /** Short, human-readable one-liner shown on the gallery card. */
+  summary: string;
+  /** Coarse bucket used by the gallery filter (e.g. `Cinematic`,
+   *  `Product Marketing`). Free-form so contributors can add new
+   *  categories without code changes. */
+  category: string;
+  /** Fine-grained labels shown as chips on the card (e.g. `3d-render`,
+   *  `anime`). Optional; omit when the category is descriptive enough. */
+  tags?: string[];
+  /** Suggested model id from src/media/models.ts. The new-project panel
+   *  applies this to the model picker when the template is selected. */
+  model?: string;
+  /** Suggested aspect ratio, applied when the template is selected. */
+  aspect?: MediaAspect;
+  /** Optional remote thumbnail (PNG/JPG/WebP) shown on the gallery card.
+   *  Lazy-loaded — the card renders a placeholder until in view. */
+  previewImageUrl?: string;
+  /** Optional remote video preview shown in the modal. */
+  previewVideoUrl?: string;
+  source: PromptTemplateSource;
+}
+
+export interface PromptTemplateDetail extends PromptTemplateSummary {
+  /** The prompt body itself — what the agent should adapt to the user's
+   *  request. Kept on the detail (not the summary) so the gallery
+   *  payload stays small. */
+  prompt: string;
+}
+
 export type ProjectFileKind =
   | 'html'
   | 'image'
@@ -281,6 +332,15 @@ export interface ProjectMetadata {
   // Free-form palette / mood hint. Carried into the system prompt so the
   // agent can echo the user's style intent into the upstream prompt.
   imageStyle?: string;
+  // Optional curated prompt-template seed picked at create time. The id
+  // is the gallery template id; title + body are denormalized so the
+  // system prompt can render them without re-fetching, and the source
+  // line lets the agent attribute correctly when the user asks where
+  // the inspiration came from.
+  imagePromptTemplateId?: string;
+  imagePromptTemplateTitle?: string;
+  imagePromptTemplateBody?: string;
+  imagePromptTemplateSource?: PromptTemplateSource;
 
   // -- Video projects ------------------------------------------------
   videoModel?: string;
@@ -288,6 +348,13 @@ export interface ProjectMetadata {
   // here — the skill body is the right place to clamp by model.
   videoLength?: number;
   videoAspect?: MediaAspect;
+  // Same shape as the image-side template seed. Kept under separate
+  // field names so a project that flips surface (rare — usually a fresh
+  // create) doesn't leak the wrong template into the wrong prompt.
+  videoPromptTemplateId?: string;
+  videoPromptTemplateTitle?: string;
+  videoPromptTemplateBody?: string;
+  videoPromptTemplateSource?: PromptTemplateSource;
 
   // -- Audio projects ------------------------------------------------
   audioKind?: AudioKind;

@@ -4,6 +4,8 @@ import type {
   DesignSystemDetail,
   DesignSystemSummary,
   ProjectFile,
+  PromptTemplateDetail,
+  PromptTemplateSummary,
   SkillDetail,
   SkillSummary,
 } from '../types';
@@ -57,6 +59,33 @@ export async function fetchDesignSystem(id: string): Promise<DesignSystemDetail 
     const resp = await fetch(`/api/design-systems/${encodeURIComponent(id)}`);
     if (!resp.ok) return null;
     return (await resp.json()) as DesignSystemDetail;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPromptTemplates(): Promise<PromptTemplateSummary[]> {
+  try {
+    const resp = await fetch('/api/prompt-templates');
+    if (!resp.ok) return [];
+    const json = (await resp.json()) as { promptTemplates: PromptTemplateSummary[] };
+    return json.promptTemplates ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchPromptTemplate(
+  surface: 'image' | 'video',
+  id: string,
+): Promise<PromptTemplateDetail | null> {
+  try {
+    const resp = await fetch(
+      `/api/prompt-templates/${encodeURIComponent(surface)}/${encodeURIComponent(id)}`,
+    );
+    if (!resp.ok) return null;
+    const json = (await resp.json()) as { promptTemplate: PromptTemplateDetail };
+    return json.promptTemplate;
   } catch {
     return null;
   }
