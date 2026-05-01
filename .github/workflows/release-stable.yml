@@ -70,8 +70,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm typecheck
+      # Build the daemon's dist before workspace typecheck — the e2e workspace's
+      # typecheck imports types from `apps/daemon/dist/*.js`, which only exist
+      # after the daemon build runs. The root `typecheck` script builds the
+      # daemon AFTER running -r typecheck, so on a fresh clone (CI) it fails.
+      # Driving the order explicitly here keeps the root script untouched.
+      - name: Build daemon (e2e typecheck depends on its dist)
+        run: pnpm --filter @open-design/daemon build
+
+      - name: Typecheck workspaces
+        run: pnpm -r --workspace-concurrency=1 --if-present run typecheck
+
+      - name: Check residual JS in TypeScript packages
+        run: pnpm check:residual-js
 
       - name: Test (workspace, if present)
         run: pnpm -r --workspace-concurrency=1 --if-present run test
