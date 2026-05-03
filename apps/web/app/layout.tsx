@@ -1,5 +1,4 @@
 import '../src/runtime/base-path-bootstrap';
-import '../src/runtime/base-path-bootstrap';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { I18nProvider } from '../src/i18n';

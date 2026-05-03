@@ -1012,7 +1012,7 @@ export function ProjectView({
           projectId: project.id,
           conversationId: activeConversationId,
           assistantMessageId: assistantId,
-          clientRequestId: crypto.randomUUID(),
+          clientRequestId: generateId(),
           skillId: project.skillId ?? null,
           designSystemId: project.designSystemId ?? null,
           attachments: attachments.map((a) => a.path),

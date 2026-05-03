@@ -716,12 +716,17 @@ function HtmlViewer({
     };
   }, [source, effectiveDeck, projectId, file.name]);
 
+  // Edit mode and comment mode are mutually exclusive — both shims listen
+  // for capture-phase mousedown/click on the iframe document and would
+  // race each other (edit-shim's stopImmediatePropagation would also
+  // suppress the comment bridge's selection telemetry, leaving stale
+  // overlays). Force commentBridge off whenever editMode is on.
   const srcDoc = useMemo(
     () => (previewSource ? buildSrcdoc(previewSource, {
       deck: effectiveDeck,
       baseHref: projectRawUrl(projectId, baseDirFor(file.name)),
       initialSlideIndex: htmlPreviewSlideState.get(previewStateKey)?.active ?? 0,
-      commentBridge: commentMode,
+      commentBridge: commentMode && mode !== 'edit',
       editMode: mode === 'edit',
     }) : ''),
     [previewSource, effectiveDeck, projectId, file.name, previewStateKey, commentMode, mode],
