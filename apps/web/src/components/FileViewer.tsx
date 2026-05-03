@@ -660,6 +660,13 @@ function HtmlViewer({
   const shareRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    // Freeze source while the user is editing — refetching from disk
+    // (via reloadKey) or accepting a fresh liveHtml chunk (mid-stream)
+    // would silently clobber the in-iframe edits the user hasn't saved
+    // yet. On exiting edit mode, this effect refires (mode is in the
+    // deps) and pulls the latest from disk, so unsaved edits are
+    // discarded — which matches the "Exit without saving" expectation.
+    if (mode === 'edit') return;
     if (liveHtml !== undefined) {
       setSource(liveHtml);
       return;
@@ -672,7 +679,7 @@ function HtmlViewer({
     return () => {
       cancelled = true;
     };
-  }, [projectId, file.name, file.mtime, liveHtml, reloadKey]);
+  }, [projectId, file.name, file.mtime, liveHtml, reloadKey, mode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1228,6 +1235,7 @@ function HtmlViewer({
             type="button"
             className="icon-only"
             onClick={() => setReloadKey((n) => n + 1)}
+            disabled={mode === 'edit'}
             title={t('fileViewer.reload')}
             aria-label={t('fileViewer.reloadAria')}
           >

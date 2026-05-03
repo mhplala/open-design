@@ -25,7 +25,7 @@ export async function streamMessageOpenAI(
   let acc = '';
 
   try {
-    const resp = await fetch('/api/proxy/stream', {
+    const resp = await fetch('/api/proxy/openai/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
