@@ -26,12 +26,15 @@ export async function listSkills(skillsRoot) {
       const { data, body } = parseFrontmatter(raw);
       const hasAttachments = await dirHasAttachments(dir);
       const mode = data.od?.mode || inferMode(body, data.description);
+      const surface = normalizeSurface(data.od?.surface, mode);
       out.push({
         id: data.name || entry.name,
         name: data.name || entry.name,
         description: data.description || "",
         triggers: Array.isArray(data.triggers) ? data.triggers : [],
         mode,
+        surface,
+        craftRequires: normalizeCraftRequires(data.od?.craft?.requires),
         platform: normalizePlatform(
           data.od?.platform,
           mode,
@@ -95,6 +98,27 @@ async function dirHasAttachments(dir) {
   }
 }
 
+// Craft sections live at <projectRoot>/craft/<name>.md. We accept any
+// alphanumeric+dash slug here so adding a new section is as simple as
+// dropping a file in craft/ and listing its name in the skill — no
+// daemon-side allowlist to keep in sync. The compose path checks the
+// file actually exists before injecting; missing files fall through
+// silently. The frontend can render the requested list verbatim.
+function normalizeCraftRequires(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const v of value) {
+    if (typeof v !== "string") continue;
+    const slug = v.trim().toLowerCase();
+    if (!slug || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) continue;
+    if (seen.has(slug)) continue;
+    seen.add(slug);
+    out.push(slug);
+  }
+  return out;
+}
+
 function normalizeDefaultFor(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value.map(String);
@@ -153,11 +177,24 @@ function derivePrompt(data) {
 
 function inferMode(body, description) {
   const hay = `${description ?? ""}\n${body ?? ""}`.toLowerCase();
+  if (/\bimage|poster|illustration|photography|图片|海报|插画/.test(hay)) return "image";
+  if (/\bvideo|motion|shortform|animation|视频|动效|短片/.test(hay)) return "video";
+  if (/\baudio|music|jingle|tts|sound|音频|音乐|配音|音效/.test(hay)) return "audio";
   if (/\bppt|deck|slide|presentation|幻灯|投影/.test(hay)) return "deck";
   if (/\bdesign[- ]system|\bdesign\.md|\bdesign tokens/.test(hay))
     return "design-system";
   if (/\btemplate\b/.test(hay)) return "template";
   return "prototype";
+}
+
+const KNOWN_SURFACES = new Set(["web", "image", "video", "audio"]);
+function normalizeSurface(value, mode) {
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    if (KNOWN_SURFACES.has(v)) return v;
+  }
+  if (mode === "image" || mode === "video" || mode === "audio") return mode;
+  return "web";
 }
 
 // Validate platform tag — only desktop / mobile are meaningful for the

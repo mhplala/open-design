@@ -5,6 +5,7 @@
  * Routes through the daemon proxy to avoid browser CORS issues.
  * BYOK — the key stays on the user's machine.
  */
+import { effectiveMaxTokens } from '../state/maxTokens';
 import type { AppConfig, ChatMessage } from '../types';
 import type { StreamHandlers } from './anthropic';
 import { parseSseFrame } from './sse';
@@ -33,6 +34,7 @@ export async function streamMessageOpenAI(
         model: cfg.model,
         systemPrompt: system,
         messages: history.map((m) => ({ role: m.role, content: m.content })),
+        maxTokens: effectiveMaxTokens(cfg),
       }),
       signal,
     });
@@ -95,25 +97,37 @@ export async function streamMessageOpenAI(
 export function isOpenAICompatible(model: string, baseUrl: string): boolean {
   const m = model.toLowerCase();
   const u = baseUrl.toLowerCase();
-  // MiMo
-  if (m.startsWith('mimo')) return true;
+  const parsed = new URL(u || 'https://api.anthropic.com', 'https://local.invalid');
+  const pathSegments = parsed.pathname.split('/').filter(Boolean);
+  const isOfficialAnthropic = parsed.hostname === 'api.anthropic.com';
+  const isAnthropicEndpoint = pathSegments.at(-1) === 'anthropic' || (
+    /^v\d+$/.test(pathSegments.at(-1) ?? '') && pathSegments.at(-2) === 'anthropic'
+  );
+
+  // Anthropic endpoint paths should win for providers that expose both
+  // protocol shapes on the same host, e.g. /v1/anthropic or /anthropic/v1.
+  if (isAnthropicEndpoint) return false;
+
+  // Explicit OpenAI-compatible providers/models should win even when a host or
+  // unrelated path segment happens to contain the word "anthropic".
   if (u.includes('xiaomimimo.com/v1')) return true;
-  // DeepSeek
-  if (m.startsWith('deepseek')) return true;
+  if (u.includes('api.minimaxi.com/v1')) return true;
   if (u.includes('api.deepseek')) return true;
-  // Groq / Llama / Mixtral
-  if (m.startsWith('groq') || m.startsWith('llama') || m.startsWith('mixtral')) return true;
   if (u.includes('api.groq')) return true;
-  // Together
   if (u.includes('api.together')) return true;
-  // OpenRouter
   if (u.includes('openrouter')) return true;
-  // OpenAI direct
   if (u.includes('openai.com')) return true;
-  // Known non-Anthropic model prefixes — route to OpenAI-compatible.
+  if (m.startsWith('deepseek')) return true;
+  if (m.startsWith('groq') || m.startsWith('llama') || m.startsWith('mixtral')) return true;
   if (m.startsWith('gpt-') || m.startsWith('o1') || m.startsWith('o3') || m.startsWith('o4')) return true;
-  // If the base URL is NOT the Anthropic default, assume OpenAI-compatible
-  // as the safe fallback for third-party providers.
-  if (u && !u.includes('anthropic')) return true;
+
+  // MiMo exposes both OpenAI-compatible (/v1) and Anthropic-compatible
+  // (/anthropic) endpoints with the same model names, so path shape must break
+  // the tie for this provider.
+  if (m.startsWith('mimo')) return true;
+
+  // If the base URL is custom and not clearly Anthropic-compatible, preserve
+  // the existing OpenAI-compatible fallback for third-party providers.
+  if (u && !isOfficialAnthropic) return true;
   return false;
 }

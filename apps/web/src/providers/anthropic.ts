@@ -8,7 +8,9 @@
  * your own backend.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import { effectiveMaxTokens } from '../state/maxTokens';
 import type { AppConfig, ChatMessage } from '../types';
+import { streamMessageAnthropicProxy } from './anthropic-compatible';
 import { isOpenAICompatible, streamMessageOpenAI } from './openai-compatible';
 
 // Re-export for convenience
@@ -35,9 +37,14 @@ export async function streamMessage(
   signal: AbortSignal,
   handlers: StreamHandlers,
 ): Promise<void> {
-  // Route to OpenAI-compatible provider for non-Anthropic models.
-  if (isOpenAICompatible(cfg.model, cfg.baseUrl)) {
+  // Prefer the explicit Settings protocol; keep the legacy heuristic as a
+  // fallback for configs saved before apiProtocol existed.
+  if (cfg.apiProtocol === 'openai' || (!cfg.apiProtocol && isOpenAICompatible(cfg.model, cfg.baseUrl))) {
     return streamMessageOpenAI(cfg, system, history, signal, handlers);
+  }
+
+  if (cfg.baseUrl && cfg.baseUrl !== 'https://api.anthropic.com') {
+    return streamMessageAnthropicProxy(cfg, system, history, signal, handlers);
   }
 
   if (!cfg.apiKey) {
@@ -52,7 +59,7 @@ export async function streamMessage(
     const stream = client.messages.stream(
       {
         model: cfg.model,
-        max_tokens: 8192,
+        max_tokens: effectiveMaxTokens(cfg),
         system,
         messages: history.map((m) => ({ role: m.role, content: m.content })),
       },
