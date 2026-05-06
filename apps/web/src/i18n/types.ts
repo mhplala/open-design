@@ -1,8 +1,8 @@
 // Supported UI locales. Adding a new locale requires creating a new
 // dictionary in `./locales/` and registering it in `./index.tsx`.
-export type Locale = 'en' | 'de' | 'zh-CN' | 'zh-TW' | 'pt-BR' | 'es-ES' | 'ru' | 'fa' | 'ar' | 'ja' | 'ko' | 'pl' | 'hu';
+export type Locale = 'en' | 'de' | 'zh-CN' | 'zh-TW' | 'pt-BR' | 'es-ES' | 'ru' | 'fa' | 'ar' | 'ja' | 'ko' | 'pl' | 'hu' | 'fr' | 'uk' | 'tr';
 
-export const LOCALES: Locale[] = ['en', 'de', 'zh-CN', 'zh-TW', 'pt-BR', 'es-ES', 'ru', 'fa', 'ar', 'ja', 'ko', 'pl', 'hu'];
+export const LOCALES: Locale[] = ['en', 'de', 'zh-CN', 'zh-TW', 'pt-BR', 'es-ES', 'ru', 'fa', 'ar', 'ja', 'ko', 'pl', 'hu', 'fr', 'uk', 'tr'];
 
 export const LOCALE_LABEL: Record<Locale, string> = {
   'en': 'English',
@@ -17,7 +17,10 @@ export const LOCALE_LABEL: Record<Locale, string> = {
   'ja': '日本語',
   'ko': '한국어',
   'pl': 'Polski',
-  'hu': 'Magyar'
+  'hu': 'Magyar',
+  'fr': 'Français',
+  'uk': 'Українська',
+  'tr': 'Türkçe'
 };
 
 // Translation dictionary shape — flat keys, dot-namespaced. We keep it
@@ -75,6 +78,7 @@ export interface Dict {
   'settings.title': string;
   'settings.subtitle': string;
   'settings.modeAria': string;
+  'settings.protocolAria': string;
   'settings.modeDaemon': string;
   'settings.modeDaemonHelp': string;
   'settings.modeDaemonOffline': string;
@@ -86,17 +90,27 @@ export interface Dict {
   'settings.codeAgentHint': string;
   'settings.rescan': string;
   'settings.rescanTitle': string;
+  'settings.rescanRunning': string;
+  'settings.rescanSuccess': string;
+  'settings.rescanFailed': string;
   'settings.noAgentsDetected': string;
   'settings.apiSection': string;
+  'settings.quickFillProvider': string;
+  'settings.customProvider': string;
   'settings.apiKey': string;
   'settings.showKey': string;
   'settings.hideKey': string;
   'settings.show': string;
   'settings.hide': string;
   'settings.model': string;
+  'settings.suggestedModelsHint': string;
   'settings.maxTokens': string;
   'settings.maxTokensHint': string;
   'settings.baseUrl': string;
+  'settings.baseUrlInvalid': string;
+  'settings.azureDeploymentModel': string;
+  'settings.azureDeploymentModelHint': string;
+  'settings.apiVersion': string;
   'settings.apiHint': string;
   'settings.skipForNow': string;
   'settings.getStarted': string;
@@ -136,6 +150,19 @@ export interface Dict {
   'settings.runtimePackaged': string;
   'settings.runtimeDevelopment': string;
   'settings.versionUnavailable': string;
+  'settings.library': string;
+  'settings.libraryHint': string;
+  'settings.librarySkills': string;
+  'settings.libraryDesignSystems': string;
+  'settings.librarySearch': string;
+  'settings.libraryAll': string;
+  'settings.libraryPreview': string;
+  'settings.libraryPreviewClose': string;
+  'settings.libraryLoading': string;
+  'settings.libraryNoResults': string;
+  'settings.libraryEnabled': string;
+  'settings.libraryDisabled': string;
+  'settings.libraryToggleLabel': string;
 
   // Notifications (settings + system notifications)
   'settings.notifications': string;
@@ -190,6 +217,7 @@ export interface Dict {
   'entry.tabDesigns': string;
   'entry.tabExamples': string;
   'entry.tabDesignSystems': string;
+  'entry.tabConnectors': string;
   'entry.tabImageTemplates': string;
   'entry.tabVideoTemplates': string;
   'entry.openSettingsTitle': string;
@@ -197,12 +225,51 @@ export interface Dict {
   'entry.resizeAria': string;
   'entry.loadingWorkspace': string;
 
+  // Connectors tab
+  'connectors.title': string;
+  'connectors.subtitle': string;
+  'connectors.account': string;
+  'connectors.noAccount': string;
+  'connectors.tools': string;
+  'connectors.connect': string;
+  'connectors.disconnect': string;
+  'connectors.configure': string;
+  'connectors.unavailable': string;
+  'connectors.phaseStubTitle': string;
+  'connectors.statusAvailable': string;
+  'connectors.statusConnected': string;
+  'connectors.statusError': string;
+  'connectors.statusDisabled': string;
+  'connectors.gateTitle': string;
+  'connectors.gateBody': string;
+  'connectors.gateAction': string;
+  'connectors.aboutLabel': string;
+  'connectors.detailsLabel': string;
+  'connectors.statusLabel': string;
+  'connectors.categoryLabel': string;
+  'connectors.providerLabel': string;
+  'connectors.toolsSection': string;
+  'connectors.toolsLoading': string;
+  'connectors.noToolsAvailable': string;
+  'connectors.openDetailsAria': string;
+  'connectors.toolsBadgeNone': string;
+  'connectors.toolsBadgeOne': string;
+  'connectors.toolsBadgeMany': string;
+  'connectors.searchPlaceholder': string;
+  'connectors.searchAriaLabel': string;
+  'connectors.searchClear': string;
+  'connectors.emptyNoMatchTitle': string;
+  'connectors.emptyNoMatchBody': string;
+  'connectors.emptyNoMatchAction': string;
+
   // New project panel
   'newproj.tabPrototype': string;
+  'newproj.tabLiveArtifact': string;
   'newproj.tabDeck': string;
   'newproj.tabTemplate': string;
   'newproj.tabOther': string;
   'newproj.titlePrototype': string;
+  'newproj.titleLiveArtifact': string;
   'newproj.titleDeck': string;
   'newproj.titleTemplate': string;
   'newproj.titleImage': string;
@@ -224,6 +291,7 @@ export interface Dict {
   'newproj.fileSingular': string;
   'newproj.filePlural': string;
   'newproj.create': string;
+  'newproj.createLiveArtifact': string;
   'newproj.createFromTemplate': string;
   'newproj.createDisabledTitle': string;
   'newproj.importClaudeZip': string;
@@ -264,6 +332,15 @@ export interface Dict {
   'newproj.audioDurationSeconds': string;
   'newproj.voiceLabel': string;
   'newproj.voicePlaceholder': string;
+  'newproj.connectorsLabel': string;
+  'newproj.connectorsHint': string;
+  'newproj.connectorsEmptyTitle': string;
+  'newproj.connectorsEmptyBody': string;
+  'newproj.connectorsEmptyCta': string;
+  'newproj.connectorsLoading': string;
+  'newproj.connectorsCountOne': string;
+  'newproj.connectorsCountMany': string;
+  'newproj.connectorsManage': string;
   'newproj.promptTemplateLabel': string;
   'newproj.promptTemplateNoneTitle': string;
   'newproj.promptTemplateNoneSub': string;
@@ -303,6 +380,15 @@ export interface Dict {
   'designs.deleteTitle': string;
   'designs.deleteConfirm': string;
   'designs.cardFreeform': string;
+  'designs.badgeLive': string;
+  'designs.liveArtifactBadgesAria': string;
+  'designs.liveCount': string;
+  'designs.statusLive': string;
+  'designs.statusArchived': string;
+  'designs.statusError': string;
+  'designs.statusRefreshing': string;
+  'designs.statusRefreshFailed': string;
+  'designs.statusRefreshed': string;
   'designs.status.notStarted': string;
   'designs.status.queued': string;
   'designs.status.running': string;
@@ -342,6 +428,8 @@ export interface Dict {
   'examples.scenarioLegal': string;
   'examples.scenarioEducation': string;
   'examples.scenarioPersonal': string;
+  'examples.searchPlaceholder': string;
+  'examples.searchAria': string;
   'examples.emptyNoSkills': string;
   'examples.emptyNoMatch': string;
   'examples.openPreview': string;
@@ -404,6 +492,7 @@ export interface Dict {
   // Project view / chat pane / composer
   'project.backToProjects': string;
   'project.metaFreeform': string;
+  'project.resizeChatPanel': string;
   'chat.tabChat': string;
   'chat.tabComments': string;
   'chat.commentsSoon': string;
@@ -452,6 +541,10 @@ export interface Dict {
   'chat.importFolder': string;
   'chat.importSkills': string;
   'chat.importProject': string;
+  'chat.linkedFolderRemoveAria': string;
+  'chat.linkedFolderNotFound': string;
+  'chat.linkedFolderAlready': string;
+  'chat.linkedFolderPickError': string;
   'chat.send': string;
   'chat.stop': string;
   'chat.removeAria': string;
@@ -501,6 +594,9 @@ export interface Dict {
   'designFiles.rowMenu': string;
   'designFiles.openInTab': string;
   'designFiles.download': string;
+  'designFiles.downloadSelected': string;
+  'designFiles.clearSelection': string;
+  'designFiles.selectAll': string;
   'designFiles.dropTitle': string;
   'designFiles.dropDesc': string;
   'designFiles.upload.title': string;
@@ -515,6 +611,7 @@ export interface Dict {
   'designFiles.sectionScripts': string;
   'designFiles.sectionImages': string;
   'designFiles.sectionSketches': string;
+  'designFiles.sectionLiveArtifacts': string;
   'designFiles.sectionOther': string;
   'designFiles.showMore': string;
   'designFiles.kindHtml': string;
@@ -526,7 +623,14 @@ export interface Dict {
   'designFiles.kindDocument': string;
   'designFiles.kindPresentation': string;
   'designFiles.kindSpreadsheet': string;
+  'designFiles.kindLiveArtifact': string;
   'designFiles.kindBinary': string;
+  'quickSwitcher.placeholder': string;
+  'quickSwitcher.empty': string;
+  'quickSwitcher.noMatches': string;
+  'quickSwitcher.navigate': string;
+  'quickSwitcher.open': string;
+  'quickSwitcher.close': string;
   'pasteDialog.title': string;
   'pasteDialog.hint': string;
   'pasteDialog.fileNameLabel': string;
@@ -614,6 +718,24 @@ export interface Dict {
   'fileViewer.templateNamePrompt': string;
   'fileViewer.templateNameDefault': string;
   'fileViewer.templateDescPrompt': string;
+  'liveArtifact.refresh.button': string;
+  'liveArtifact.refresh.buttonTitle': string;
+  'liveArtifact.refresh.loadingTitle': string;
+  'liveArtifact.refresh.noSourceTitle': string;
+  'liveArtifact.refresh.running': string;
+  'liveArtifact.refresh.runningMessage': string;
+  'liveArtifact.refresh.runningAction': string;
+  'liveArtifact.refresh.successOne': string;
+  'liveArtifact.refresh.successMany': string;
+  'liveArtifact.refresh.successAction': string;
+  'liveArtifact.refresh.previousFailure': string;
+  'liveArtifact.refresh.failureAction': string;
+  'liveArtifact.refresh.networkFailure': string;
+  'liveArtifact.refresh.genericFailure': string;
+  'liveArtifact.refresh.statusNever': string;
+  'liveArtifact.refresh.statusReady': string;
+  'liveArtifact.refresh.statusSucceeded': string;
+  'liveArtifact.refresh.statusFailed': string;
   'fileViewer.deployToVercel': string;
   'fileViewer.redeployToVercel': string;
   'fileViewer.deployingToVercel': string;

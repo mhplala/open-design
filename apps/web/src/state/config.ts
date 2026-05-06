@@ -49,6 +49,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   // saved configs that did not have this field and migrates those from their
   // saved baseUrl/model before applying the current migration version.
   apiProtocol: 'anthropic',
+  apiVersion: '',
+  apiProtocolConfigs: {},
   configMigrationVersion: CONFIG_MIGRATION_VERSION,
   apiProviderBaseUrl: 'https://api.anthropic.com',
   agentId: null,
@@ -57,6 +59,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   onboardingCompleted: false,
   theme: 'system',
   mediaProviders: {},
+  composio: {},
   agentModels: {},
   pet: DEFAULT_PET,
   notifications: DEFAULT_NOTIFICATIONS,
@@ -124,6 +127,20 @@ export const KNOWN_PROVIDERS: KnownProvider[] = [
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-4o',
     models: ['gpt-4o', 'gpt-4o-mini', 'o3', 'o4-mini'],
+  },
+  {
+    label: 'Azure OpenAI',
+    protocol: 'azure',
+    baseUrl: '',
+    model: '',
+    models: [],
+  },
+  {
+    label: 'Google Gemini',
+    protocol: 'google',
+    baseUrl: 'https://generativelanguage.googleapis.com',
+    model: 'gemini-2.0-flash',
+    models: ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro', 'gemini-1.5-flash'],
   },
   {
     label: 'DeepSeek — OpenAI',
@@ -214,7 +231,9 @@ export function loadConfig(): AppConfig {
     const merged: AppConfig = {
       ...DEFAULT_CONFIG,
       ...parsed,
+      apiProtocolConfigs: { ...(parsed.apiProtocolConfigs ?? {}) },
       mediaProviders: { ...(parsed.mediaProviders ?? {}) },
+      composio: { ...(parsed.composio ?? {}) },
       agentModels: { ...(parsed.agentModels ?? {}) },
       pet: normalizePet(parsed.pet),
       notifications: normalizeNotifications(parsed.notifications),
@@ -225,7 +244,7 @@ export function loadConfig(): AppConfig {
       // protocol so old OpenAI-compatible endpoints keep routing correctly.
       // This is version-gated instead of only field-gated so a later imported
       // legacy config can be migrated when it is loaded.
-      if (!parsedHasApiProtocol && merged.mode === 'api') {
+      if (!parsedHasApiProtocol) {
         merged.apiProtocol = inferApiProtocol(merged.model, merged.baseUrl);
         // Also set apiProviderBaseUrl so setApiProtocol() can correctly identify
         // whether the user is on a known provider and switch defaults appropriately.
@@ -246,6 +265,44 @@ export function loadConfig(): AppConfig {
       pet: normalizePet(DEFAULT_PET),
       notifications: normalizeNotifications(DEFAULT_NOTIFICATIONS),
     };
+  }
+}
+
+interface PublicComposioConfigResponse {
+  configured?: boolean;
+  apiKeyTail?: string;
+}
+
+export async function fetchComposioConfigFromDaemon(): Promise<AppConfig['composio'] | null> {
+  try {
+    const response = await fetch('/api/connectors/composio/config');
+    if (!response.ok) return null;
+    const payload = await response.json() as PublicComposioConfigResponse;
+    return {
+      apiKey: '',
+      apiKeyConfigured: Boolean(payload.configured),
+      apiKeyTail: payload.apiKeyTail ?? '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function syncComposioConfigToDaemon(
+  config: AppConfig['composio'] | undefined,
+): Promise<void> {
+  const apiKey = config?.apiKey ?? '';
+  const payload = {
+    ...(apiKey.trim() || !config?.apiKeyConfigured ? { apiKey } : {}),
+  };
+  try {
+    await fetch('/api/connectors/composio/config', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // Daemon offline; localStorage keeps the user's copy for the next save.
   }
 }
 
@@ -296,6 +353,8 @@ export async function syncConfigToDaemon(config: AppConfig): Promise<void> {
     agentModels: config.agentModels,
     skillId: config.skillId,
     designSystemId: config.designSystemId,
+    disabledSkills: config.disabledSkills,
+    disabledDesignSystems: config.disabledDesignSystems,
   };
   try {
     await fetch('/api/app-config', {
