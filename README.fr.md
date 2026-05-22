@@ -1,6 +1,15 @@
-# Open Design
+# Open Design — l’alternative open source officielle à [Claude Design][cd]
 
-> **L’alternative open source à [Claude Design][cd].** Local-first, déployable sur le web, BYOK à chaque couche : vos CLI de coding agents détectées automatiquement dans le `PATH` deviennent le design engine, piloté par les catalogues de **Skills** et de **Design Systems** du repo. Aucune CLI ? Le proxy BYOK multi-provider exécute la même boucle, sans spawn local.
+> **Open Design est l’alternative open source et local-first à [Claude Design][cd].** Déployable sur le web, BYOK à chaque couche : vos CLI de coding agents détectées automatiquement dans le `PATH` deviennent le design engine, piloté par les catalogues de **Skills** et de **Design Systems** du repo. Aucune CLI ? Le proxy BYOK multi-provider exécute la même boucle, sans spawn local.
+
+> [!IMPORTANT]
+> ### 🔥 `0.8.0-preview` est là. L'ancien monde du design s'arrête ici.
+>
+> Une alternative open source à Claude Design / Figma — 40k étoiles en deux semaines nous ont menés jusqu'ici. **Nous avons besoin de toi pour faire le reste du chemin.**
+>
+> **Itération rapide sur `main`** — 0.8.0 est la prochaine phase d'Open Design. Envoie une PR, balance une idée folle, signale un bug — ce que tu apportes, c'est ce que ce mouvement devient.
+>
+> → [**Lire l'annonce · télécharger l'installateur · rejoindre le mouvement**](https://github.com/nexu-io/open-design/discussions/1727) · s'installe à côté de votre 0.7 actuel.
 
 <p align="center">
   <img src="docs/assets/banner.png" alt="Open Design : couverture éditoriale, design avec l’agent sur votre laptop" width="100%" />
@@ -27,7 +36,7 @@
   <a href="QUICKSTART.fr.md"><img alt="Quickstart" src="https://img.shields.io/badge/quickstart-3%20commands-green?style=flat-square" /></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.de.md">Deutsch</a> · <b>Français</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja-JP.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.uk.md">Українська</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.de.md">Deutsch</a> · <b>Français</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja-JP.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.uk.md">Українська</a> · <a href="README.tr.md">Türkçe</a></p>
 
 ---
 
@@ -43,7 +52,7 @@ Le résultat dépasse l’idée d’une IA qui tente simplement de faire du desi
 
 OD s’appuie sur quatre projets open source :
 
-- [**`alchaincyf/huashu-design`**](https://github.com/alchaincyf/huashu-design), la boussole de design philosophy. Le workflow Junior-Designer, le protocole en 5 étapes pour les assets de marque, la checklist anti-AI-slop, la self-critique en 5 dimensions et l’idée « 5 écoles × 20 philosophies design » derrière notre direction picker sont condensés dans [`apps/web/src/prompts/discovery.ts`](apps/web/src/prompts/discovery.ts).
+- [**`alchaincyf/huashu-design`**](https://github.com/alchaincyf/huashu-design), la boussole de design philosophy. Le workflow Junior-Designer, le protocole en 5 étapes pour les assets de marque, la checklist anti-AI-slop, la self-critique en 5 dimensions et l’idée « 5 écoles × 20 philosophies design » derrière notre direction picker sont condensés dans [`apps/daemon/src/prompts/discovery.ts`](apps/daemon/src/prompts/discovery.ts).
 - [**`op7418/guizang-ppt-skill`**](https://github.com/op7418/guizang-ppt-skill), le mode deck. Inclus tel quel sous [`skills/guizang-ppt/`](skills/guizang-ppt/), avec licence originale préservée ; layouts magazine, hero WebGL, checklists P0/P1/P2.
 - [**`OpenCoworkAI/open-codesign`**](https://github.com/OpenCoworkAI/open-codesign), notre UX north star et le projet le plus proche. Nous reprenons sa streaming-artifact loop, son pattern de preview en iframe sandboxée (React 18 + Babel vendored), son live agent panel (todos + tool calls + génération interruptible) et ses cinq formats d’export (HTML / PDF / PPTX / ZIP / Markdown). Nous divergeons volontairement sur le format : ils livrent une app desktop Electron avec [`pi-ai`][piai] intégré ; nous sommes une web app + daemon local qui délègue à la CLI déjà installée chez vous.
 - [**`multica-ai/multica`**](https://github.com/multica-ai/multica), l’architecture daemon et runtime. Détection des agents dans le `PATH`, daemon local comme seul processus privilégié, vision agent-as-teammate.
@@ -52,12 +61,12 @@ OD s’appuie sur quatre projets open source :
 
 | | Ce que vous obtenez |
 |---|---|
-| **CLI de coding agents** | Claude Code · Codex CLI · Devin for Terminal · Cursor Agent · Gemini CLI · OpenCode · Qwen Code · GitHub Copilot CLI · Hermes (ACP) · Kimi CLI (ACP) · Pi (RPC) · Kiro CLI (ACP) · Mistral Vibe CLI (ACP), détectées automatiquement dans `PATH`, interchangeables en un clic |
+| **CLI de coding agents (16)** | Claude Code · Codex CLI · Devin for Terminal · Cursor Agent · Gemini CLI · OpenCode · Qwen Code · Qoder CLI · GitHub Copilot CLI · Hermes (ACP) · Kimi CLI (ACP) · Pi (RPC) · Kiro CLI (ACP) · Kilo (ACP) · Mistral Vibe CLI (ACP) · DeepSeek TUI, détectées automatiquement dans `PATH`, interchangeables en un clic |
 | **BYOK fallback** | Proxy API par protocole sur `/api/proxy/{anthropic,openai,azure,google}/stream` : collez `baseUrl` + `apiKey` + `model`, choisissez Anthropic / OpenAI / Azure OpenAI / Google Gemini, et le daemon normalise le SSE vers le même chat stream. Les destinations internal IP / SSRF sont bloquées côté daemon. |
 | **Design Systems intégrés** | Le menu déroulant charge les Design Systems depuis `design-systems/*/DESIGN.md` : starters écrits à la main, product systems importés depuis [`awesome-design-md`][acd2] et design skills normalisés depuis [`awesome-design-skills`][ads]. |
 | **Skills intégrés** | Le picker charge les Skills depuis `skills/*/SKILL.md` et les regroupe par `mode` / `scenario` : prototype, deck, image, video, audio, Design System, utility, puis notamment design / marketing / operations / engineering / product / finance / hr / sales / personal. |
 | **Génération média** | Les surfaces image, vidéo et audio sont livrées avec la design loop. **gpt-image-2** (Azure / OpenAI) pour posters, avatars, infographies et cartes illustrées ; **Seedance 2.0** (ByteDance) pour du text-to-video et image-to-video cinématique de 15 s ; **HyperFrames** ([heygen-com/hyperframes](https://github.com/heygen-com/hyperframes)) pour des motion graphics HTML→MP4. La galerie [`prompt-templates/`](prompt-templates/) fournit des prompts prêts à reproduire, avec thumbnails et attribution. Même surface de chat que le code ; les sorties deviennent de vrais fichiers `.mp4` / `.png` dans le workspace du projet. |
-| **Directions visuelles** | 5 écoles soigneusement sélectionnées (Editorial Monocle · Modern Minimal · Warm Soft · Tech Utility · Brutalist Experimental), chacune avec palette OKLch déterministe + font stack ([`apps/web/src/prompts/directions.ts`](apps/web/src/prompts/directions.ts)) |
+| **Directions visuelles** | 5 écoles soigneusement sélectionnées (Editorial Monocle · Modern Minimal · Warm Soft · Tech Utility · Brutalist Experimental), chacune avec palette OKLch déterministe + font stack ([`apps/daemon/src/prompts/directions.ts`](apps/daemon/src/prompts/directions.ts)) |
 | **Frames d’appareils** | iPhone 15 Pro · Pixel · iPad Pro · MacBook · Browser Chrome, pixel-accurate et partagés entre Skills sous [`assets/frames/`](assets/frames/) |
 | **Agent runtime** | Le daemon local lance la CLI dans le dossier projet. L’agent reçoit de vrais `Read`, `Write`, `Bash`, `WebFetch` sur un environnement disque réel, avec fallback Windows `ENAMETOOLONG` (stdin / prompt-file) sur chaque adapter |
 | **Imports** | Déposez un ZIP exporté depuis [Claude Design][cd] dans le welcome dialog : `POST /api/import/claude-design` le convertit en vrai projet pour que votre agent continue là où Anthropic s’est arrêté |
@@ -220,7 +229,7 @@ Ajouter un Skill revient à ajouter un dossier. Lisez [`docs/skills-protocol.md`
 
 ### 1 · Nous ne livrons pas d’agent. Le vôtre suffit.
 
-Au démarrage, le daemon scanne votre `PATH` avec les définitions de [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts) : Claude Code, Codex, Devin for Terminal, Cursor Agent, Gemini CLI, OpenCode, Qwen, GitHub Copilot CLI, Hermes, Kimi, Pi, Kiro CLI, Mistral Vibe CLI et les adapters ajoutés plus tard. Ceux qu’il trouve deviennent des design engines candidats, pilotés via stdio avec un adapter par CLI et interchangeables depuis le model picker. Inspiré par [`multica`](https://github.com/multica-ai/multica) et [`cc-switch`](https://github.com/farion1231/cc-switch). Aucune CLI installée ? Le mode API suit la même pipeline, sans spawn local : choisissez Anthropic, OpenAI-compatible, Azure OpenAI ou Google Gemini, et le daemon renvoie les chunks SSE normalisés, avec rejet des destinations loopback / link-local / RFC1918.
+Au démarrage, le daemon scanne votre `PATH` avec les définitions de [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts) : Claude Code, Codex, Devin for Terminal, Cursor Agent, Gemini CLI, OpenCode, Qwen, Qoder CLI, GitHub Copilot CLI, Hermes, Kimi, Pi, Kiro CLI, Mistral Vibe CLI et les adapters ajoutés plus tard. Ceux qu’il trouve deviennent des design engines candidats, pilotés via stdio avec un adapter par CLI et interchangeables depuis le model picker. Inspiré par [`multica`](https://github.com/multica-ai/multica) et [`cc-switch`](https://github.com/farion1231/cc-switch). Aucune CLI installée ? Le mode API suit la même pipeline, sans spawn local : choisissez Anthropic, OpenAI-compatible, Azure OpenAI ou Google Gemini, et le daemon renvoie les chunks SSE normalisés, avec rejet des destinations loopback / link-local / RFC1918.
 
 ### 2 · Les Skills sont des fichiers, pas des plugins.
 
@@ -254,7 +263,7 @@ DISCOVERY directives  (formulaire tour 1, branche marque tour 2, TodoWrite, crit
   + (deck kind, no skill seed) DECK_FRAMEWORK_DIRECTIVE   (nav / counter / scroll / print)
 ```
 
-Chaque couche est composable. Chaque couche est un fichier éditable. Lisez [`apps/web/src/prompts/system.ts`](apps/web/src/prompts/system.ts) et [`apps/web/src/prompts/discovery.ts`](apps/web/src/prompts/discovery.ts) pour voir le contrat réel.
+Chaque couche est composable. Chaque couche est un fichier éditable. Lisez [`apps/daemon/src/prompts/system.ts`](apps/daemon/src/prompts/system.ts) et [`apps/daemon/src/prompts/discovery.ts`](apps/daemon/src/prompts/discovery.ts) pour voir le contrat réel.
 
 ## Architecture
 
@@ -282,7 +291,7 @@ Chaque couche est composable. Chaque couche est un fichier éditable. Lisez [`ap
              ▼
    ┌──────────────────────────────────────────────────────────────────┐
    │  claude · codex · devin (ACP) · gemini · opencode · cursor-agent │
-   │  qwen · copilot · hermes (ACP) · kimi (ACP) · pi (RPC) · kiro · vibe (ACP) │
+   │  qwen · qoder · copilot · hermes (ACP) · kimi (ACP) · pi (RPC) · kiro · vibe (ACP) │
    │  reads SKILL.md + DESIGN.md, writes artifacts to disk            │
    └──────────────────────────────────────────────────────────────────┘
 ```
@@ -291,7 +300,7 @@ Chaque couche est composable. Chaque couche est un fichier éditable. Lisez [`ap
 |---|---|
 | Frontend | Next.js 16 App Router + React 18 + TypeScript, déployable sur Vercel |
 | Daemon | Node 24 · Express · streaming SSE · `better-sqlite3`; tables `projects` · `conversations` · `messages` · `tabs` · `templates` |
-| Transport agent | `child_process.spawn`; parseurs typed-event pour `claude-stream-json`, `copilot-stream-json`, `json-event-stream`, `acp-json-rpc`, `pi-rpc`, `plain` |
+| Transport agent | `child_process.spawn`; parseurs typed-event pour `claude-stream-json`, `qoder-stream-json`, `copilot-stream-json`, `json-event-stream`, `acp-json-rpc`, `pi-rpc`, `plain` |
 | Proxy BYOK | `POST /api/proxy/{anthropic,openai,azure,google}/stream` → APIs provider-specific, SSE normalisé `delta/end/error` ; rejet loopback / link-local / RFC1918 au bord du daemon |
 | Stockage | Fichiers simples dans `.od/projects/<id>/` + SQLite dans `.od/app.sqlite` (gitignored, auto-créé). `OD_DATA_DIR` permet l’isolation des tests |
 | Aperçu | Iframe sandboxée via `srcdoc` + parser `<artifact>` par Skill ([`apps/web/src/artifacts/parser.ts`](apps/web/src/artifacts/parser.ts)) |
@@ -321,6 +330,8 @@ pnpm tools-dev run web
 ```
 
 Prérequis : Node `~24` et pnpm `10.33.x`. `nvm` / `fnm` ne sont que des aides facultatives ; si vous en utilisez un, lancez `nvm install 24 && nvm use 24` ou `fnm install 24 && fnm use 24` avant `pnpm install`.
+
+Les utilisateurs Windows peuvent suivre [`docs/windows-troubleshooting.md`](docs/windows-troubleshooting.md) pour le chemin d'installation natif et un petit launcher en double-clic.
 
 Pour le démarrage desktop/background, les redémarrages sur ports fixes et les checks du dispatcher de génération média (`OD_BIN`, `OD_DAEMON_URL`, `apps/daemon/dist/cli.js`), voir [`QUICKSTART.fr.md`](QUICKSTART.fr.md).
 
@@ -500,7 +511,7 @@ Quand l’utilisateur n’a pas de brand spec, l’agent émet un second formula
 | Brutalist | Brut, typographie oversized, pas d’ombres, accents durs | Bloomberg Businessweek · Achtung |
 | Soft warm | Généreux, faible contraste, neutres pêche | Notion marketing · Apple Health |
 
-Spec complète → [`apps/web/src/prompts/directions.ts`](apps/web/src/prompts/directions.ts).
+Spec complète → [`apps/daemon/src/prompts/directions.ts`](apps/daemon/src/prompts/directions.ts).
 
 ## Génération média
 
@@ -590,7 +601,7 @@ La boucle chat / artifact est la plus visible, mais plusieurs capacités moins e
 
 ## Anti-AI-slop machinery
 
-Tout le mécanisme ci-dessous vient du playbook [`huashu-design`](https://github.com/alchaincyf/huashu-design), porté dans le prompt stack d’OD et rendu vérifiable par Skill via le pre-flight des side files :
+Tout le mécanisme ci-dessous est le playbook [`huashu-design`](https://github.com/alchaincyf/huashu-design), porté dans le prompt-stack d'OD et rendu vérifiable par Skill via le pre-flight des side files. Lisez [`apps/daemon/src/prompts/discovery.ts`](apps/daemon/src/prompts/discovery.ts) pour le texte actuel :
 
 - **Question form first.** Le tour 1 est seulement `<question-form>`, sans thinking, outils ni narration. L’utilisateur choisit des valeurs par défaut à la vitesse de boutons radio.
 - **Brand-spec extraction.** Quand l’utilisateur attache un screenshot ou une URL, l’agent suit un protocole en cinq étapes (locate · download · grep hex · codify `brand-spec.md` · vocalise) avant d’écrire du CSS. **Il ne devine jamais les couleurs de marque depuis la mémoire.**
@@ -627,7 +638,7 @@ Tout le mécanisme ci-dessous vient du playbook [`huashu-design`](https://github
 
 [cd]: https://x.com/claudeai/status/2045156267690213649
 [ocod]: https://github.com/OpenCoworkAI/open-codesign
-[piai]: https://github.com/mariozechner/pi-ai
+[piai]: https://github.com/badlogic/pi-mono/tree/main/packages/ai
 [acd]: https://github.com/VoltAgent/awesome-claude-design
 [guizang]: https://github.com/op7418/guizang-ppt-skill
 [skill]: https://docs.anthropic.com/en/docs/claude-code/skills
@@ -645,15 +656,18 @@ Auto-détectés depuis `PATH` au boot du daemon. Aucune config nécessaire. Le d
 | [OpenCode](https://opencode.ai/) | `opencode` | `json-event-stream` + parseur `opencode` | `opencode run --format json --dangerously-skip-permissions [--model …] -` |
 | [Cursor Agent](https://www.cursor.com/cli) | `cursor-agent` | `json-event-stream` + parseur `cursor-agent` | `cursor-agent --print --output-format stream-json --stream-partial-output --force --trust [--workspace cwd] [--model …]` (prompt sur stdin) |
 | [Qwen Code](https://github.com/QwenLM/qwen-code) | `qwen` | `plain` | `qwen --yolo [--model …] -` |
+| Qoder CLI | `qodercli` | `qoder-stream-json` | `qodercli -p --output-format stream-json --permission-mode bypass_permissions [--cwd cwd] [--model …] [--add-dir …]` (prompt sur stdin) |
 | [GitHub Copilot CLI](https://github.com/features/copilot/cli) | `copilot` | `copilot-stream-json` | `copilot -p - --allow-all-tools --output-format json [--model …] [--add-dir …]` (prompt sur stdin) |
 | [Hermes](https://github.com/eqlabs/hermes) | `hermes` | `acp-json-rpc` | `hermes acp --accept-hooks` |
 | Kimi CLI | `kimi` | `acp-json-rpc` | `kimi acp` |
 | [Kiro CLI](https://kiro.dev) | `kiro-cli` | `acp-json-rpc` | `kiro-cli acp` |
+| Kilo | `kilo` | `acp-json-rpc` | `kilo acp` |
 | [Mistral Vibe CLI](https://github.com/mistralai/mistral-vibe) | `vibe-acp` | `acp-json-rpc` | `vibe-acp` |
-| [Pi](https://github.com/mariozechner/pi-ai) | `pi` | `pi-rpc` | `pi --mode rpc [--model …] [--thinking …]` |
+| DeepSeek TUI | `deepseek` | `plain` (raw stdout chunks) | `deepseek exec --auto [--model …] <prompt>` |
+| [Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | `pi` | `pi-rpc` | `pi --mode rpc [--model …] [--thinking …]` |
 | **BYOK multi-provider** | n/a | SSE normalisé | `POST /api/proxy/{provider}/stream` → Anthropic / OpenAI-compatible / Azure OpenAI / Gemini ; protégé contre loopback / link-local / RFC1918 |
 
-Ajouter une nouvelle CLI revient à ajouter une entrée dans [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts). Le format de stream est l’un de `claude-stream-json`, `copilot-stream-json`, `json-event-stream`, `acp-json-rpc`, `pi-rpc` ou `plain`.
+Ajouter une nouvelle CLI revient à ajouter une entrée dans [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts). Le format de stream est l’un de `claude-stream-json`, `qoder-stream-json`, `copilot-stream-json`, `json-event-stream`, `acp-json-rpc`, `pi-rpc` ou `plain`.
 
 ## Références & lignée
 
@@ -662,7 +676,7 @@ Chaque projet externe dont ce repo s’inspire. Chaque lien pointe vers la sourc
 | Projet | Rôle ici |
 |---|---|
 | [`Claude Design`][cd] | Le produit fermé dont ce repo est l’alternative open source. |
-| [**`alchaincyf/huashu-design`**](https://github.com/alchaincyf/huashu-design) | Le cœur philosophie design. Workflow Junior-Designer, protocole brand-asset en 5 étapes, checklist anti-AI-slop, self-critique 5 dimensions et bibliothèque « 5 écoles × 20 philosophies design ». |
+| [**`alchaincyf/huashu-design`**](https://github.com/alchaincyf/huashu-design) | Le cœur philosophie design. Workflow Junior-Designer, protocole brand-asset en 5 étapes, checklist anti-AI-slop, self-critique 5 dimensions et bibliothèque « 5 écoles × 20 philosophies design » — tout distillé dans [`apps/daemon/src/prompts/discovery.ts`](apps/daemon/src/prompts/discovery.ts) et [`apps/daemon/src/prompts/directions.ts`](apps/daemon/src/prompts/directions.ts). |
 | [**`op7418/guizang-ppt-skill`**][guizang] | Skill Magazine-web-PPT inclus tel quel sous [`skills/guizang-ppt/`](skills/guizang-ppt/). Défaut pour le mode deck. |
 | [**`multica-ai/multica`**](https://github.com/multica-ai/multica) | Architecture daemon + adapter. Détection PATH, daemon local comme seul processus privilégié, vision agent-as-teammate. |
 | [**`OpenCoworkAI/open-codesign`**][ocod] | Première alternative open source à Claude Design et pair le plus proche. Patterns UX adoptés : streaming-artifact loop, preview iframe sandboxée, panneau agent live, cinq exports, storage hub local, goût injecté par `SKILL.md`. |
@@ -719,7 +733,7 @@ Guide complet, critères de merge, style de code et refus fréquents → [`CONTR
 Merci à toutes les personnes qui font avancer Open Design : code, docs, retours, nouveaux Skills, nouveaux Design Systems ou issues bien ciblées. Chaque vraie contribution compte.
 
 <a href="https://github.com/nexu-io/open-design/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=nexu-io/open-design&cache_bust=2026-05-05" alt="Contributeurs Open Design" />
+  <img src="https://contrib.rocks/image?repo=nexu-io/open-design&cache_bust=2026-05-21" alt="Contributeurs Open Design" />
 </a>
 
 Si vous avez livré votre première PR, bienvenue. Le label [`good-first-issue`/`help-wanted`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22%2C%22help+wanted%22) est le point d’entrée.
@@ -736,9 +750,9 @@ Le SVG ci-dessus est régénéré chaque jour par [`.github/workflows/metrics.ym
 
 <a href="https://star-history.com/#nexu-io/open-design&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&theme=dark&cache_bust=2026-05-05" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-05" />
-    <img alt="Historique des stars Open Design" src="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-05" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&theme=dark&cache_bust=2026-05-21" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-21" />
+    <img alt="Historique des stars Open Design" src="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-21" />
   </picture>
 </a>
 

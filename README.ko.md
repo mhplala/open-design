@@ -1,6 +1,15 @@
-# Open Design
+# Open Design — [Claude Design][cd]의 공식 오픈소스 대안
 
-> **[Claude Design][cd]의 오픈소스 대안.** 로컬 우선, 웹 배포 가능, 모든 레이어에서 BYOK — `PATH`에서 자동 감지되는 **15개의 코딩 에이전트 CLI**(Claude Code, Codex, Devin for Terminal, Cursor Agent, Gemini CLI, OpenCode, Qwen, GitHub Copilot CLI, Hermes, Kimi, Pi, Kiro, Kilo, Mistral Vibe, DeepSeek TUI)가 **31가지 조합 가능한 Skill**과 **72가지 브랜드급 디자인 시스템**으로 구동되는 디자인 엔진이 됩니다. CLI가 하나도 없다? OpenAI 호환 BYOK 프록시가 spawn만 빠진 동일한 루프를 돌립니다.
+> **Open Design은 [Claude Design][cd]의 오픈소스, 로컬 우선 대안입니다.** 웹 배포 가능, 모든 레이어에서 BYOK — `PATH`에서 자동 감지되는 **16개의 코딩 에이전트 CLI**(Claude Code, Codex, Devin for Terminal, Cursor Agent, Gemini CLI, OpenCode, Qwen, Qoder CLI, GitHub Copilot CLI, Hermes, Kimi, Pi, Kiro, Kilo, Mistral Vibe, DeepSeek TUI)가 **31가지 조합 가능한 Skill**과 **72가지 브랜드급 디자인 시스템**으로 구동되는 디자인 엔진이 됩니다. CLI가 하나도 없다? OpenAI 호환 BYOK 프록시가 spawn만 빠진 동일한 루프를 돌립니다.
+
+> [!IMPORTANT]
+> ### 🔥 `0.8.0-preview`가 도착했습니다. 디자인의 옛 시대는 여기서 끝납니다.
+>
+> Claude Design / Figma의 오픈소스 대안 — 2주 만에 40k stars로 여기까지 왔습니다. **남은 길은 당신과 함께 가야 합니다.**
+>
+> **`main`에서 빠르게 이터레이션 중** — 0.8.0은 Open Design의 다음 단계입니다. PR을 보내고, 거친 아이디어를 던지고, 버그를 신고하세요 — 당신이 가져오는 것이 곧 이 무브먼트가 됩니다.
+>
+> → [**공지 읽기 · 인스톨러 다운로드 · 무브먼트에 합류**](https://github.com/nexu-io/open-design/discussions/1727) · 현재 사용 중인 0.7과 나란히 설치됩니다.
 
 <p align="center">
   <img src="docs/assets/banner.png" alt="Open Design — 노트북 위의 에이전트와 함께 설계하는 표지" width="100%" />
@@ -20,14 +29,14 @@
   <a href="https://open-design.ai/"><img alt="다운로드" src="https://img.shields.io/badge/%EB%8B%A4%EC%9A%B4%EB%A1%9C%EB%93%9C-open--design.ai-ff6b35?style=flat-square" /></a>
   <a href="https://github.com/nexu-io/open-design/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/nexu-io/open-design?style=flat-square&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square" /></a>
-  <a href="#지원하는-코딩-에이전트"><img alt="Agents" src="https://img.shields.io/badge/agents-15%20CLIs%20%2B%20BYOK%20proxy-black?style=flat-square" /></a>
-  <a href="#디자인-시스템"><img alt="Design systems" src="https://img.shields.io/badge/design%20systems-72-orange?style=flat-square" /></a>
-  <a href="#내장-skills"><img alt="Skills" src="https://img.shields.io/badge/skills-31-teal?style=flat-square" /></a>
+  <a href="#지원하는-코딩-에이전트"><img alt="Agents" src="https://img.shields.io/badge/agents-16%20CLIs%20%2B%20BYOK%20proxy-black?style=flat-square" /></a>
+  <a href="#디자인-시스템"><img alt="Design systems" src="https://img.shields.io/badge/design%20systems-149-orange?style=flat-square" /></a>
+  <a href="#내장-skills"><img alt="Skills" src="https://img.shields.io/badge/skills-131-teal?style=flat-square" /></a>
   <a href="https://discord.gg/qhbcCH8Am4"><img alt="Discord" src="https://img.shields.io/badge/discord-join-5865F2?style=flat-square&logo=discord&logoColor=white" /></a>
   <a href="QUICKSTART.md"><img alt="Quickstart" src="https://img.shields.io/badge/quickstart-3%20commands-green?style=flat-square" /></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <b>한국어</b> · <a href="README.ja-JP.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.uk.md">Українська</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <b>한국어</b> · <a href="README.ja-JP.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.uk.md">Українська</a> · <a href="README.tr.md">Türkçe</a></p>
 
 ---
 
@@ -43,7 +52,7 @@ Anthropic의 [Claude Design][cd](2026-04-17 출시, Opus 4.7 기반)은 LLM이 �
 
 OD는 네 개의 오픈소스 프로젝트의 어깨 위에 서 있습니다:
 
-- [**`alchaincyf/huashu-design`**](https://github.com/alchaincyf/huashu-design) — 디자인 철학의 나침반. Junior-Designer 워크플로, 5단계 브랜드 에셋 프로토콜, anti-AI-slop 체크리스트, 5차원 자기 검토, 그리고 방향 선택기 뒤의 "5가지 학파 × 20가지 디자인 철학" 아이디어 — 모두 [`apps/web/src/prompts/discovery.ts`](apps/web/src/prompts/discovery.ts)에 녹아들었습니다.
+- [**`alchaincyf/huashu-design`**](https://github.com/alchaincyf/huashu-design) — 디자인 철학의 나침반. Junior-Designer 워크플로, 5단계 브랜드 에셋 프로토콜, anti-AI-slop 체크리스트, 5차원 자기 검토, 그리고 방향 선택기 뒤의 "5가지 학파 × 20가지 디자인 철학" 아이디어 — 모두 [`apps/daemon/src/prompts/discovery.ts`](apps/daemon/src/prompts/discovery.ts)에 녹아들었습니다.
 - [**`op7418/guizang-ppt-skill`**](https://github.com/op7418/guizang-ppt-skill) — 덱 모드. [`skills/guizang-ppt/`](skills/guizang-ppt/) 아래에 원본 그대로 번들됨, 원 LICENSE 보존; 매거진 레이아웃, WebGL hero, P0/P1/P2 체크리스트.
 - [**`OpenCoworkAI/open-codesign`**](https://github.com/OpenCoworkAI/open-codesign) — UX의 북극성이자 가장 가까운 동류. 최초의 오픈소스 Claude-Design 대안. 스트리밍 아티팩트 루프, 샌드박스 iframe 미리보기 패턴(React 18 + Babel 내장), 실시간 에이전트 패널(todos + tool calls + 중단 가능한 생성), 5가지 내보내기 형식(HTML / PDF / PPTX / ZIP / Markdown)을 차용했습니다. 폼 팩터에서는 의도적으로 차별화했습니다 — 그쪽은 [`pi-ai`][piai]를 번들링한 Electron 데스크탑 앱이고, 우리는 에이전트 런타임을 이미 설치된 CLI에 **위임**하는 웹앱 + 로컬 daemon입니다.
 - [**`multica-ai/multica`**](https://github.com/multica-ai/multica) — Daemon 및 런타임 아키텍처. PATH 스캔 방식의 에이전트 감지, 단일 특권 프로세스로서의 로컬 daemon, 에이전트-동료 세계관.
@@ -52,12 +61,12 @@ OD는 네 개의 오픈소스 프로젝트의 어깨 위에 서 있습니다:
 
 | | 제공 내용 |
 |---|---|
-| **코딩 에이전트 CLI(15개)** | Claude Code · Codex CLI · Devin for Terminal · Cursor Agent · Gemini CLI · OpenCode · Qwen Code · GitHub Copilot CLI · Hermes(ACP) · Kimi CLI(ACP) · Pi(RPC) · Kiro CLI(ACP) · Kilo(ACP) · Mistral Vibe CLI(ACP) · DeepSeek TUI — `PATH`에서 자동 감지, 한 번의 클릭으로 전환 |
+| **코딩 에이전트 CLI(16개)** | Claude Code · Codex CLI · Devin for Terminal · Cursor Agent · Gemini CLI · OpenCode · Qwen Code · Qoder CLI · GitHub Copilot CLI · Hermes (ACP) · Kimi CLI (ACP) · Pi (RPC) · Kiro CLI (ACP) · Kilo (ACP) · Mistral Vibe CLI (ACP) · DeepSeek TUI — `PATH`에서 자동 감지, 한 번의 클릭으로 전환 |
 | **BYOK 폴백** | OpenAI 호환 프록시 `/api/proxy/stream` — `baseUrl` + `apiKey` + `model`만 붙여 넣으면 어떤 벤더(Anthropic-via-OpenAI 어댑터, DeepSeek, Groq, MiMo, OpenRouter, 자체 호스팅 vLLM, 또는 OpenAI 호환 프로바이더 무엇이든)든 엔진이 됩니다. daemon 경계에서 내부 IP / SSRF를 차단합니다. |
 | **내장 디자인 시스템** | **72개** — 2개의 수작업 스타터 + [`awesome-design-md`][acd2]에서 가져온 70개의 제품 시스템(Linear, Stripe, Vercel, Airbnb, Tesla, Notion, Anthropic, Apple, Cursor, Supabase, Figma, Xiaohongshu …) |
 | **내장 Skill** | **31개** — `prototype` 모드 27개(web-prototype, saas-landing, dashboard, mobile-app, gamified-app, social-carousel, magazine-poster, dating-web, sprite-animation, motion-frames, critique, tweaks, wireframe-sketch, pm-spec, eng-runbook, finance-report, hr-onboarding, invoice, kanban-board, team-okrs …) + `deck` 모드 4개(`guizang-ppt` · `simple-deck` · `replit-deck` · `weekly-update`). picker에서 `scenario`로 그룹화: design / marketing / operation / engineering / product / finance / hr / sale / personal. |
 | **미디어 생성** | 이미지 · 비디오 · 오디오 surface가 디자인 루프와 함께 작동합니다. **gpt-image-2**(Azure / OpenAI)로 포스터, 아바타, 인포그래픽, 일러스트 도시 지도 · **Seedance 2.0**(ByteDance)로 15초 시네마틱 text-to-video / image-to-video · **HyperFrames**([heygen-com/hyperframes](https://github.com/heygen-com/hyperframes))로 HTML→MP4 모션 그래픽(제품 리빌, 키네틱 타이포그래피, 데이터 차트, 소셜 오버레이, 로고 아웃트로). **93개**의 즉시 복제 가능한 prompt 갤러리 — 43 gpt-image-2 + 39 Seedance + 11 HyperFrames — 모두 [`prompt-templates/`](prompt-templates/) 아래에 미리보기 썸네일과 출처 표기와 함께 배치. 채팅 입구는 코드와 동일; 실제 `.mp4` / `.png`이 프로젝트 워크스페이스에 chip으로 떨어집니다. |
-| **시각적 방향** | 5가지 엄선된 학파(Editorial Monocle · Modern Minimal · Warm Soft · Tech Utility · Brutalist Experimental) — 각각 결정론적 OKLch 팔레트 + 폰트 스택 제공([`apps/web/src/prompts/directions.ts`](apps/web/src/prompts/directions.ts)) |
+| **시각적 방향** | 5가지 엄선된 학파(Editorial Monocle · Modern Minimal · Warm Soft · Tech Utility · Brutalist Experimental) — 각각 결정론적 OKLch 팔레트 + 폰트 스택 제공([`apps/daemon/src/prompts/directions.ts`](apps/daemon/src/prompts/directions.ts)) |
 | **기기 프레임** | iPhone 15 Pro · Pixel · iPad Pro · MacBook · Browser Chrome — 픽셀 정확도, skill 간 공유, [`assets/frames/`](assets/frames/)에 통합 |
 | **에이전트 런타임** | 로컬 daemon이 프로젝트 폴더에서 CLI를 실행 — 에이전트가 실제 디스크 환경에 대한 실제 `Read`, `Write`, `Bash`, `WebFetch` 도구 사용; 모든 어댑터에 Windows `ENAMETOOLONG` 폴백(stdin / 임시 prompt 파일) |
 | **임포트** | [Claude Design][cd] 익스포트 ZIP을 환영 다이얼로그에 드롭하면 `POST /api/import/claude-design`이 진짜 프로젝트로 풀어주고, 로컬 에이전트는 Anthropic이 멈춘 지점에서 그대로 편집을 이어받습니다. |
@@ -219,7 +228,7 @@ skill 추가는 폴더 하나면 됩니다. [`docs/skills-protocol.md`](docs/ski
 
 ### 1 · 에이전트를 제공하지 않습니다. 여러분의 것으로 충분합니다.
 
-Daemon은 시작 시 `PATH`에서 [`claude`](https://docs.anthropic.com/en/docs/claude-code), [`codex`](https://github.com/openai/codex), [`cursor-agent`](https://www.cursor.com/cli), [`gemini`](https://github.com/google-gemini/gemini-cli), [`opencode`](https://opencode.ai/), [`qwen`](https://github.com/QwenLM/qwen-code), [`copilot`](https://github.com/features/copilot/cli), `hermes`, `kimi`, [`pi`](https://github.com/mariozechner/pi-ai)를 스캔합니다. 찾은 것들 모두가 후보 디자인 엔진이 됩니다 — stdio를 통해 구동되며 CLI당 하나의 어댑터, 모델 picker에서 즉시 전환 가능. [`multica`](https://github.com/multica-ai/multica)와 [`cc-switch`](https://github.com/farion1231/cc-switch)에서 영감을 받았습니다. CLI가 하나도 설치되어 있지 않다면? `POST /api/proxy/stream`이 spawn만 없는 동일한 파이프라인입니다 — 임의의 OpenAI 호환 `baseUrl` + `apiKey`만 붙여 넣으면 daemon이 SSE 청크를 브라우저로 그대로 전달하며, loopback / link-local / RFC1918 목적지는 경계에서 거부됩니다.
+Daemon은 시작 시 `PATH`에서 [`claude`](https://docs.anthropic.com/en/docs/claude-code), [`codex`](https://github.com/openai/codex), [`cursor-agent`](https://www.cursor.com/cli), [`gemini`](https://github.com/google-gemini/gemini-cli), [`opencode`](https://opencode.ai/), [`qwen`](https://github.com/QwenLM/qwen-code), `qodercli`, [`copilot`](https://github.com/features/copilot/cli), `hermes`, `kimi`, [`pi`](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent)를 스캔합니다. 찾은 것들 모두가 후보 디자인 엔진이 됩니다 — stdio를 통해 구동되며 CLI당 하나의 어댑터, 모델 picker에서 즉시 전환 가능. [`multica`](https://github.com/multica-ai/multica)와 [`cc-switch`](https://github.com/farion1231/cc-switch)에서 영감을 받았습니다. CLI가 하나도 설치되어 있지 않다면? `POST /api/proxy/stream`이 spawn만 없는 동일한 파이프라인입니다 — 임의의 OpenAI 호환 `baseUrl` + `apiKey`만 붙여 넣으면 daemon이 SSE 청크를 브라우저로 그대로 전달하며, loopback / link-local / RFC1918 목적지는 경계에서 거부됩니다.
 
 ### 2 · Skill은 파일이지 플러그인이 아닙니다.
 
@@ -253,7 +262,7 @@ DISCOVERY 지시문    (turn-1 폼, turn-2 브랜드 분기, TodoWrite, 5차원 
   + (덱 kind, skill seed 없음) DECK_FRAMEWORK_DIRECTIVE   (nav / counter / scroll / print)
 ```
 
-모든 레이어는 조합 가능합니다. 모든 레이어는 편집 가능한 파일입니다. 실제 계약을 보려면 [`apps/web/src/prompts/system.ts`](apps/web/src/prompts/system.ts)와 [`apps/web/src/prompts/discovery.ts`](apps/web/src/prompts/discovery.ts)를 읽으세요.
+모든 레이어는 조합 가능합니다. 모든 레이어는 편집 가능한 파일입니다. 실제 계약을 보려면 [`apps/daemon/src/prompts/system.ts`](apps/daemon/src/prompts/system.ts)와 [`apps/daemon/src/prompts/discovery.ts`](apps/daemon/src/prompts/discovery.ts)를 읽으세요.
 
 ## 아키텍처
 
@@ -281,7 +290,7 @@ DISCOVERY 지시문    (turn-1 폼, turn-2 브랜드 분기, TodoWrite, 5차원 
              ▼
    ┌──────────────────────────────────────────────────────────────────┐
    │  claude · codex · gemini · opencode · cursor-agent · qwen        │
-   │  copilot · hermes (ACP) · kimi (ACP) · pi (RPC)                  │
+   │  qoder · copilot · hermes (ACP) · kimi (ACP) · pi (RPC)                  │
    │  SKILL.md + DESIGN.md 읽기, 디스크에 아티팩트 쓰기               │
    └──────────────────────────────────────────────────────────────────┘
 ```
@@ -290,7 +299,7 @@ DISCOVERY 지시문    (turn-1 폼, turn-2 브랜드 분기, TodoWrite, 5차원 
 |---|---|
 | 프론트엔드 | Next.js 16 App Router + React 18 + TypeScript, Vercel 배포 가능 |
 | Daemon | Node 24 · Express · SSE 스트리밍 · `better-sqlite3`; 테이블: `projects` · `conversations` · `messages` · `tabs` · `templates` |
-| 에이전트 전송 | `child_process.spawn`; 타입 이벤트 파서: `claude-stream-json`(Claude Code), `copilot-stream-json`(Copilot), `json-event-stream` + 각 CLI 파서(Codex / Gemini / OpenCode / Cursor Agent), `acp-json-rpc`(Hermes / Kimi via Agent Client Protocol), `pi-rpc`(Pi via stdio JSON-RPC), `plain`(Qwen Code) |
+| 에이전트 전송 | `child_process.spawn`; 타입 이벤트 파서: `claude-stream-json`(Claude Code), `qoder-stream-json` (Qoder CLI), `copilot-stream-json`(Copilot), `json-event-stream` + 각 CLI 파서(Codex / Gemini / OpenCode / Cursor Agent), `acp-json-rpc`(Devin / Hermes / Kimi / Kiro / Kilo / Mistral Vibe via Agent Client Protocol), `pi-rpc`(Pi via stdio JSON-RPC), `plain`(Qwen Code / DeepSeek TUI) |
 | BYOK 프록시 | `POST /api/proxy/stream` → OpenAI 호환 `/v1/chat/completions`, SSE 통과; daemon 경계에서 loopback / link-local / RFC1918 호스트 거부 |
 | 저장소 | `.od/projects/<id>/`의 평문 파일 + `.od/app.sqlite`의 SQLite(gitignore됨, 자동 생성). 테스트 격리를 위해 `OD_DATA_DIR`로 루트 변경 가능 |
 | 미리보기 | `srcdoc`를 통한 샌드박스 iframe + 스킬별 `<artifact>` 파서([`apps/web/src/artifacts/parser.ts`](apps/web/src/artifacts/parser.ts)) |
@@ -320,6 +329,10 @@ pnpm tools-dev run web
 ```
 
 환경 요구사항: Node `~24`와 pnpm `10.33.x`. `nvm` / `fnm`은 선택적 보조 도구일 뿐입니다; 사용한다면 `pnpm install` 전에 `nvm install 24 && nvm use 24` 또는 `fnm install 24 && fnm use 24`를 실행하세요.
+
+Windows 사용자는 네이티브 설치 경로와 작은 더블 클릭 런처에 대해서는 [`docs/windows-troubleshooting.md`](docs/windows-troubleshooting.md)를 참고하세요.
+
+데스크톱/백그라운드 시작, 고정 포트 재시작, 미디어 생성 dispatcher 확인(`OD_BIN`, `OD_DAEMON_URL`, `apps/daemon/dist/cli.js`)은 [`QUICKSTART.md`](QUICKSTART.md)를 참고하세요.
 
 첫 번째 로드 시:
 
@@ -492,7 +505,7 @@ open-design/
 | Brutalist | 날것, 거대한 타입, 그림자 없음, 강한 액센트 | Bloomberg Businessweek · Achtung |
 | Soft warm | 여유롭고, 낮은 대비, 복숭아 계열 뉴트럴 | Notion 마케팅 · Apple Health |
 
-전체 스펙 → [`apps/web/src/prompts/directions.ts`](apps/web/src/prompts/directions.ts).
+전체 스펙 → [`apps/daemon/src/prompts/directions.ts`](apps/daemon/src/prompts/directions.ts).
 
 ## 미디어 생성
 
@@ -577,12 +590,12 @@ OD는 코드에서 끝나지 않습니다. `<artifact>` HTML을 만드는 동일
 - **탭 영속성.** 모든 프로젝트는 `tabs` 테이블에 자기가 연 파일들과 활성 탭을 기억합니다. 내일 다시 열어도 워크스페이스는 어제 떠난 그 모습 그대로.
 - **Artifact lint API.** `POST /api/artifacts/lint`는 생성된 아티팩트에 대해 구조 검사(파괴된 `<artifact>` 프레임, 누락된 필수 사이드 파일, 오래된 팔레트 토큰)를 실행하고, 에이전트가 다음 턴에 다시 읽어들일 수 있는 findings를 반환합니다. 5차원 자기 검토는 이걸로 점수를 vibe가 아닌 실제 증거에 묶어둡니다.
 - **Sidecar 프로토콜 + 데스크탑 자동화.** Daemon, web, desktop 프로세스 모두 타입화된 5필드 스탬프(`app · mode · namespace · ipc · source`)를 들고 다니며, JSON-RPC IPC 채널을 `/tmp/open-design/ipc/<namespace>/<app>.sock`에 노출합니다. `tools-dev inspect desktop status \| eval \| screenshot`이 그 채널 위에서 동작하므로, 헤드리스 E2E가 진짜 Electron 셸을 상대로 자체 하네스 없이 동작합니다([`packages/sidecar-proto/`](packages/sidecar-proto/), [`apps/desktop/src/main/`](apps/desktop/src/main/)).
-- **Windows 친화적 spawn.** 긴 합성 prompt에서 `CreateProcess`의 약 32 KB argv 한계를 넘을 만한 모든 어댑터(Codex, Gemini, OpenCode, Cursor Agent, Qwen, Pi)는 prompt를 stdin으로 보냅니다. Claude Code와 Copilot은 `-p`를 유지하고, 그것마저 넘치면 daemon은 임시 prompt 파일로 폴백합니다.
+- **Windows 친화적 spawn.** 긴 합성 prompt에서 `CreateProcess`의 약 32 KB argv 한계를 넘을 만한 모든 어댑터(Codex, Gemini, OpenCode, Cursor Agent, Qwen, Qoder CLI, Pi)는 prompt를 stdin으로 보냅니다. Claude Code와 Copilot은 `-p`를 유지하고, 그것마저 넘치면 daemon은 임시 prompt 파일로 폴백합니다.
 - **네임스페이스별 런타임 데이터.** `OD_DATA_DIR`과 `--namespace`로 완전히 격리된 `.od/`-스타일 트리를 받습니다. Playwright, 베타 채널, 실제 작업 프로젝트가 SQLite 파일을 공유하는 일은 절대 없습니다.
 
 ## Anti-AI-slop 메커니즘
 
-아래의 모든 메커니즘은 [`huashu-design`](https://github.com/alchaincyf/huashu-design) 플레이북을 OD의 프롬프트 스택에 이식하고, 사이드 파일 pre-flight를 통해 skill별로 적용 가능하게 만든 것입니다. 실제 문구는 [`apps/web/src/prompts/discovery.ts`](apps/web/src/prompts/discovery.ts)를 읽으세요:
+아래의 모든 메커니즘은 [`huashu-design`](https://github.com/alchaincyf/huashu-design) 플레이북을 OD의 프롬프트 스택에 이식하고, 사이드 파일 pre-flight를 통해 skill별로 적용 가능하게 만든 것입니다. 실제 문구는 [`apps/daemon/src/prompts/discovery.ts`](apps/daemon/src/prompts/discovery.ts)를 읽으세요:
 
 - **질문 폼 우선.** Turn 1은 오직 `<question-form>` — 생각하기 없음, 도구 없음, 내레이션 없음. 사용자는 라디오 속도로 기본값을 선택합니다.
 - **브랜드 스펙 추출.** 사용자가 스크린샷이나 URL을 첨부하면, 에이전트는 5단계 프로토콜(위치 파악 · 다운로드 · hex grep · `brand-spec.md` 코드화 · 발성)을 실행한 후 CSS를 작성합니다. **절대 기억에서 브랜드 색상을 추측하지 않습니다.**
@@ -601,7 +614,7 @@ OD는 코드에서 끝나지 않습니다. `<artifact>` HTML을 만드는 동일
 | 에이전트 런타임 | 번들됨(Opus 4.7) | 번들됨([`pi-ai`][piai]) | **사용자 기존 CLI에 위임** |
 | Skill | 독점 | 12개 커스텀 TS 모듈 + `SKILL.md` | **31개 파일 기반 [`SKILL.md`][skill] 번들, 드롭 가능** |
 | 디자인 시스템 | 독점 | `DESIGN.md`(v0.2 로드맵) | **`DESIGN.md` × 72개 시스템 기본 제공** |
-| 프로바이더 유연성 | Anthropic 전용 | [`pi-ai`][piai]를 통해 7+ | **15개 CLI 어댑터 + OpenAI 호환 BYOK 프록시** |
+| 프로바이더 유연성 | Anthropic 전용 | [`pi-ai`][piai]를 통해 7+ | **16개 CLI 어댑터 + OpenAI 호환 BYOK 프록시** |
 | 초기화 질문 폼 | ❌ | ❌ | **✅ 하드 규칙, turn 1** |
 | 방향 선택기 | ❌ | ❌ | **✅ 5가지 결정론적 방향** |
 | 실시간 할 일 진행 + 도구 스트림 | ❌ | ✅ | **✅** (open-codesign의 UX 패턴) |
@@ -619,7 +632,7 @@ OD는 코드에서 끝나지 않습니다. `<artifact>` HTML을 만드는 동일
 
 [cd]: https://x.com/claudeai/status/2045156267690213649
 [ocod]: https://github.com/OpenCoworkAI/open-codesign
-[piai]: https://github.com/mariozechner/pi-ai
+[piai]: https://github.com/badlogic/pi-mono/tree/main/packages/ai
 [acd]: https://github.com/VoltAgent/awesome-claude-design
 [guizang]: https://github.com/op7418/guizang-ppt-skill
 [skill]: https://docs.anthropic.com/en/docs/claude-code/skills
@@ -637,17 +650,18 @@ daemon 부팅 시 `PATH`에서 자동 감지됩니다. 설정 필요 없음. 스
 | [OpenCode](https://opencode.ai/) | `opencode` | `json-event-stream` + `opencode` 파서 | `opencode run --format json --dangerously-skip-permissions [--model …] -`(prompt는 stdin) |
 | [Cursor Agent](https://www.cursor.com/cli) | `cursor-agent` | `json-event-stream` + `cursor-agent` 파서 | `cursor-agent --print --output-format stream-json --stream-partial-output --force --trust [--workspace cwd] [--model …] -`(prompt는 stdin) |
 | [Qwen Code](https://github.com/QwenLM/qwen-code) | `qwen` | `plain`(원시 stdout 청크) | `qwen --yolo [--model …] -`(prompt는 stdin) |
+| Qoder CLI | `qodercli` | `qoder-stream-json`(타입 이벤트) | `qodercli -p --output-format stream-json --permission-mode bypass_permissions [--cwd cwd] [--model …] [--add-dir …]`(prompt는 stdin) |
 | [GitHub Copilot CLI](https://github.com/features/copilot/cli) | `copilot` | `copilot-stream-json`(타입 이벤트) | `copilot -p <prompt> --allow-all-tools --output-format json [--model …] [--add-dir …]` |
 | [Hermes](https://github.com/eqlabs/hermes) | `hermes` | `acp-json-rpc`(Agent Client Protocol) | `hermes acp --accept-hooks` |
 | Kimi CLI | `kimi` | `acp-json-rpc` | `kimi acp` |
-| [Pi](https://github.com/mariozechner/pi-ai) | `pi` | `pi-rpc`(stdio JSON-RPC) | `pi --mode rpc [--model …] [--thinking …]`(prompt는 RPC `prompt` 명령으로 전송) |
+| [Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | `pi` | `pi-rpc`(stdio JSON-RPC) | `pi --mode rpc [--model …] [--thinking …]`(prompt는 RPC `prompt` 명령으로 전송) |
 | [Kiro CLI](https://kiro.dev) | `kiro-cli` | `acp-json-rpc` | `kiro-cli acp` |
 | Kilo | `kilo` | `acp-json-rpc` | `kilo acp` |
 | [Mistral Vibe CLI](https://github.com/mistralai/mistral-vibe) | `vibe-acp` | `acp-json-rpc` | `vibe-acp` |
 | DeepSeek TUI | `deepseek` | `plain`(원시 stdout 청크) | `deepseek exec --auto [--model …] <prompt>`(prompt는 위치 인수) |
 | **멀티 프로바이더 BYOK** | n/a | SSE 정규화 | `POST /api/proxy/{anthropic,openai,azure,google}/stream` → Anthropic / OpenAI 호환 / Azure OpenAI / Gemini; loopback / link-local / RFC1918에 대한 SSRF 차단 |
 
-새 CLI 추가는 [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts)에 항목 하나 추가하는 것입니다. 스트리밍 형식은 `claude-stream-json`, `copilot-stream-json`, `json-event-stream`(CLI별 `eventParser`와 함께), `acp-json-rpc`, `pi-rpc`, `plain` 중 하나입니다.
+새 CLI 추가는 [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts)에 항목 하나 추가하는 것입니다. 스트리밍 형식은 `claude-stream-json`, `qoder-stream-json`, `copilot-stream-json`, `json-event-stream`(CLI별 `eventParser`와 함께), `acp-json-rpc`, `pi-rpc`, `plain` 중 하나입니다.
 
 ## 참조 및 계보
 
@@ -656,7 +670,7 @@ daemon 부팅 시 `PATH`에서 자동 감지됩니다. 설정 필요 없음. 스
 | 프로젝트 | 역할 |
 |---|---|
 | [`Claude Design`][cd] | 이 저장소가 오픈소스 대안을 제공하는 클로즈드 소스 제품. |
-| [**`alchaincyf/huashu-design`**](https://github.com/alchaincyf/huashu-design) | 디자인 철학 핵심. Junior-Designer 워크플로, 5단계 브랜드 에셋 프로토콜, anti-AI-slop 체크리스트, 5차원 자기 검토, 그리고 방향 선택기 뒤의 "5가지 학파 × 20가지 디자인 철학" 라이브러리 — 모두 [`apps/web/src/prompts/discovery.ts`](apps/web/src/prompts/discovery.ts)와 [`apps/web/src/prompts/directions.ts`](apps/web/src/prompts/directions.ts)에 녹아들었습니다. |
+| [**`alchaincyf/huashu-design`**](https://github.com/alchaincyf/huashu-design) | 디자인 철학 핵심. Junior-Designer 워크플로, 5단계 브랜드 에셋 프로토콜, anti-AI-slop 체크리스트, 5차원 자기 검토, 그리고 방향 선택기 뒤의 "5가지 학파 × 20가지 디자인 철학" 라이브러리 — 모두 [`apps/daemon/src/prompts/discovery.ts`](apps/daemon/src/prompts/discovery.ts)와 [`apps/daemon/src/prompts/directions.ts`](apps/daemon/src/prompts/directions.ts)에 녹아들었습니다. |
 | [**`op7418/guizang-ppt-skill`**][guizang] | [`skills/guizang-ppt/`](skills/guizang-ppt/) 아래에 원본 그대로 번들된 Magazine-web-PPT skill, 원 LICENSE 보존. 덱 모드 기본. P0/P1/P2 체크리스트 문화는 다른 모든 skill에도 차용됩니다. |
 | [**`multica-ai/multica`**](https://github.com/multica-ai/multica) | Daemon + 어댑터 아키텍처. PATH 스캔 에이전트 감지, 단일 특권 프로세스로서의 로컬 daemon, 에이전트-동료 세계관. 모델을 채용했지만 코드는 vendor하지 않습니다. |
 | [**`OpenCoworkAI/open-codesign`**][ocod] | 최초의 오픈소스 Claude-Design 대안이자 가장 가까운 동류. 채택된 UX 패턴: 스트리밍 아티팩트 루프, 샌드박스 iframe 미리보기(React 18 + Babel 내장), 실시간 에이전트 패널(todos + tool calls + 중단 가능), 5가지 내보내기 형식(HTML/PDF/PPTX/ZIP/Markdown), 로컬 우선 designs 허브, `SKILL.md` 취향 주입. 로드맵의 UX 패턴: 코멘트 모드 수술적 편집, AI 제안 트윅 패널. **[`pi-ai`][piai]는 의도적으로 vendor하지 않습니다** — open-codesign은 이를 에이전트 런타임으로 번들링하지만 우리는 사용자가 이미 가진 CLI에 위임합니다. |
@@ -668,7 +682,7 @@ daemon 부팅 시 `PATH`에서 자동 감지됩니다. 설정 필요 없음. 스
 
 ## 로드맵
 
-- [x] Daemon + 에이전트 감지(15개 CLI 어댑터) + skill 레지스트리 + 디자인 시스템 카탈로그
+- [x] Daemon + 에이전트 감지(16개 CLI 어댑터) + skill 레지스트리 + 디자인 시스템 카탈로그
 - [x] 웹앱 + 채팅 + 질문 폼 + 5가지 방향 선택기 + 할 일 진행 + 샌드박스 미리보기
 - [x] 31개 skill + 72개 디자인 시스템 + 5가지 시각적 방향 + 5개 기기 프레임
 - [x] SQLite 기반 projects · conversations · messages · tabs · templates
@@ -712,7 +726,7 @@ daemon 부팅 시 `PATH`에서 자동 감지됩니다. 설정 필요 없음. 스
 Open Design을 앞으로 나아가게 도와준 모든 분께 감사드립니다 — 코드, 문서, 피드백, 새 skill, 새 디자인 시스템, 또는 날카로운 이슈 하나라도. 모든 진짜 기여가 의미 있고, 아래의 벽이 가장 직접적인 "감사합니다"입니다.
 
 <a href="https://github.com/nexu-io/open-design/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=nexu-io/open-design&cache_bust=2026-05-05" alt="Open Design 컨트리뷰터" />
+  <img src="https://contrib.rocks/image?repo=nexu-io/open-design&cache_bust=2026-05-21" alt="Open Design 컨트리뷰터" />
 </a>
 
 첫 PR을 보냈다면 — 환영합니다. [`good-first-issue`/`help-wanted`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22%2C%22help+wanted%22) 레이블이 시작점입니다.
@@ -729,9 +743,9 @@ Open Design을 앞으로 나아가게 도와준 모든 분께 감사드립니다
 
 <a href="https://star-history.com/#nexu-io/open-design&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&theme=dark&cache_bust=2026-05-05" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-05" />
-    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-05" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&theme=dark&cache_bust=2026-05-21" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-21" />
+    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-21" />
   </picture>
 </a>
 

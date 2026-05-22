@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { de } from './locales/de';
 import { en } from './locales/en';
+import { id } from './locales/id';
 import { esES } from './locales/es-ES';
 import { fa } from './locales/fa';
 import { ar } from './locales/ar';
@@ -25,6 +26,8 @@ import { hu } from './locales/hu';
 import { fr } from './locales/fr';
 import { uk } from './locales/uk';
 import { tr } from './locales/tr';
+import { th } from './locales/th';
+import { it } from './locales/it';
 import { LOCALES, type Dict, type Locale } from './types';
 
 export { LOCALES, LOCALE_LABEL } from './types';
@@ -34,6 +37,7 @@ type DictKey = keyof Dict;
 
 const DICTS: Record<Locale, Dict> = {
   'en': en,
+  'id': id,
   'de': de,
   'zh-CN': zhCN,
   'zh-TW': zhTW,
@@ -49,13 +53,38 @@ const DICTS: Record<Locale, Dict> = {
   'fr': fr,
   'uk': uk,
   'tr': tr,
+  'th': th,
+  'it': it,
 };
 
 const LS_KEY = 'open-design:locale';
 
-// First-run default is English. We honor an explicit user pick saved to
-// localStorage but never auto-detect from `navigator.language`, so the
-// initial experience is consistent and predictable.
+export function resolveSystemLocale(languages: readonly string[]): Locale | null {
+  const supported = LOCALES as readonly string[];
+  for (const raw of languages) {
+    const normalized = raw.trim();
+    if (!normalized) continue;
+
+    const exact = LOCALES.find((locale) => locale.toLowerCase() === normalized.toLowerCase());
+    if (exact) return exact;
+
+    const [language, regionOrScript] = normalized.toLowerCase().split('-');
+    if (language === 'zh') {
+      if (regionOrScript === 'hant' || regionOrScript === 'tw' || regionOrScript === 'hk' || regionOrScript === 'mo') {
+        return 'zh-TW';
+      }
+      return 'zh-CN';
+    }
+
+    const baseMatch = LOCALES.find((locale) => locale.toLowerCase().split('-')[0] === language);
+    if (baseMatch && supported.includes(baseMatch)) return baseMatch;
+  }
+  return null;
+}
+
+// First-run defaults to the user's browser/system language when possible.
+// An explicit user pick saved to localStorage always wins; unsupported
+// languages fall back to English.
 function detectInitialLocale(): Locale {
   if (typeof window === 'undefined') return 'en';
   try {
@@ -66,7 +95,10 @@ function detectInitialLocale(): Locale {
   } catch {
     /* ignore */
   }
-  return 'en';
+  const detected = resolveSystemLocale(
+    navigator.languages?.length ? navigator.languages : [navigator.language],
+  );
+  return detected ?? 'en';
 }
 
 interface I18nContextValue {

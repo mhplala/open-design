@@ -85,6 +85,20 @@ describe('resolveStandaloneServerEntry', () => {
       await rm(copiedRoot, { force: true, recursive: true });
     }
   });
+
+  it('can resolve a copied standalone resource without a web package root', async () => {
+    const copiedRoot = await mkdtemp(join(tmpdir(), 'open-design-web-copied-only-'));
+    const copiedWebRoot = join(copiedRoot, 'apps', 'web');
+
+    try {
+      await mkdir(copiedWebRoot, { recursive: true });
+      await writeFile(join(copiedWebRoot, 'server.js'), '', 'utf8');
+
+      expect(resolveStandaloneServerEntry(null, copiedRoot)).toBe(join(copiedWebRoot, 'server.js'));
+    } finally {
+      await rm(copiedRoot, { force: true, recursive: true });
+    }
+  });
 });
 
 describe('createStandaloneServerArgs', () => {
@@ -144,6 +158,46 @@ describe('normalizeDaemonProxyOriginHeader', () => {
         webPort: 3000,
       }),
     ).toBe('http://127.0.0.1:7456');
+  });
+
+  it('normalizes matching private LAN browser origins to the daemon origin', () => {
+    expect(
+      normalizeDaemonProxyOriginHeader({
+        daemonOrigin: 'http://127.0.0.1:7456',
+        origin: 'http://192.168.3.23:8085',
+        requestHost: '192.168.3.23:8085',
+        webPort: 8085,
+      }),
+    ).toBe('http://127.0.0.1:7456');
+  });
+
+  it('does not normalize mismatched private LAN origins', () => {
+    expect(
+      normalizeDaemonProxyOriginHeader({
+        daemonOrigin: 'http://127.0.0.1:7456',
+        origin: 'http://192.168.3.23:8085',
+        requestHost: '192.168.3.24:8085',
+        webPort: 8085,
+      }),
+    ).toBe('http://192.168.3.23:8085');
+  });
+
+  it('normalizes matching wildcard configured dev origins to the daemon origin', () => {
+    const previous = process.env.OD_ALLOWED_DEV_ORIGINS;
+    process.env.OD_ALLOWED_DEV_ORIGINS = '*.local-origin.dev';
+    try {
+      expect(
+        normalizeDaemonProxyOriginHeader({
+          daemonOrigin: 'http://127.0.0.1:7456',
+          origin: 'http://app.local-origin.dev:8085',
+          requestHost: 'app.local-origin.dev:8085',
+          webPort: 8085,
+        }),
+      ).toBe('http://127.0.0.1:7456');
+    } finally {
+      if (previous == null) delete process.env.OD_ALLOWED_DEV_ORIGINS;
+      else process.env.OD_ALLOWED_DEV_ORIGINS = previous;
+    }
   });
 
   it('does not rewrite unrelated browser origins', () => {

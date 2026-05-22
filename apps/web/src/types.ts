@@ -1,16 +1,35 @@
 import type {
   AgentInfo,
+  AgentCliEnvPrefs,
   AgentModelPrefs,
+  AgentTestRequest,
   AppVersionInfo,
   AppVersionResponse,
   AudioKind,
   ChatAttachment,
   ChatCommentAttachment,
+  ChatCommentSelectionKind,
+  ChatMessageFeedback,
+  ChatMessageFeedbackRating,
+  ChatMessageFeedbackReasonCode,
   ChatMessage,
+  ConnectionTestKind,
+  ConnectionTestProtocol,
+  ConnectionTestRequest,
+  ConnectionTestResponse,
   Conversation,
   DeployConfigResponse,
   DeployProjectFileResponse,
   DesignSystemDetail,
+  DesignSystemFileDetail,
+  DesignSystemFileSummary,
+  DesignSystemGenerationJob,
+  DesignSystemPackageAudit,
+  DesignSystemPackageAuditIssue,
+  DesignSystemProvenance,
+  DesignSystemRevision,
+  DesignSystemRevisionJobRequest,
+  DesignSystemRevisionStatus,
   DesignSystemSummary,
   LiveArtifact,
   LiveArtifactDetailResponse,
@@ -21,34 +40,58 @@ import type {
   LiveArtifactStatus,
   LiveArtifactSummary,
   MediaAspect,
+  OrbitRunSummary,
+  OrbitStatusResponse,
   ProjectDeploymentsResponse,
+  ProviderTestRequest,
   PersistedAgentEvent,
+  ProviderModelOption,
+  ProviderModelsKind,
+  ProviderModelsRequest,
+  ProviderModelsResponse,
   Project,
+  ProjectPlatform,
   PreviewCommentMember,
   PreviewCommentSelectionKind,
   PreviewComment,
   PreviewCommentStatus,
   PreviewCommentTarget,
   PreviewCommentUpsertRequest,
+  PreviewVisualMarkKind,
   ProjectDisplayStatus,
   ProjectFile,
   ProjectFileKind,
   ProjectKind,
   ProjectMetadata,
   ProjectTemplate,
+  RenameProjectFileResponse,
   CodexPetSummary,
   CodexPetsResponse,
   SyncCommunityPetsRequest,
   SyncCommunityPetsResponse,
   SkillDetail,
   SkillSummary,
+  InstallInput,
+  InstallSkillResponse,
+  InstallDesignSystemResponse,
+  UninstallResponse,
   UpdateDeployConfigRequest,
 } from '@open-design/contracts';
 
-export type { PreviewCommentMember, PreviewCommentSelectionKind } from '@open-design/contracts';
+export type {
+  CloudflarePagesDeploySelection,
+  CloudflarePagesDeploymentInfo,
+  CloudflarePagesZonesResponse,
+  ChatCommentSelectionKind,
+  OrbitRunSummary,
+  OrbitStatusResponse,
+  PreviewCommentMember,
+  PreviewCommentSelectionKind,
+  PreviewVisualMarkKind,
+} from '@open-design/contracts';
 
 export type ExecMode = 'daemon' | 'api';
-export type ApiProtocol = 'anthropic' | 'openai' | 'azure' | 'google';
+export type ApiProtocol = 'anthropic' | 'openai' | 'azure' | 'google' | 'ollama' | 'senseaudio';
 
 export type LiveArtifactTabId = `live:${string}`;
 export type ProjectWorkspaceTabId = string | LiveArtifactTabId;
@@ -126,6 +169,9 @@ export interface LiveArtifactPreviewRequest {
 export interface MediaProviderCredentials {
   apiKey: string;
   baseUrl: string;
+  model?: string;
+  apiKeyConfigured?: boolean;
+  apiKeyTail?: string;
 }
 
 export interface ApiProtocolConfig {
@@ -134,6 +180,13 @@ export interface ApiProtocolConfig {
   model: string;
   apiVersion?: string;
   apiProviderBaseUrl?: string | null;
+  /** SenseAudio BYOK only — default image model the daemon-side
+   *  `generate_image` tool uses when the LLM doesn't pass one. Carries
+   *  one of the SenseAudio image model ids (`senseaudio-image-2.0-260319`,
+   *  `senseaudio-image-1.0-260319`, `doubao-seedream-5-0-260128`). Stored
+   *  per-protocol so flipping between BYOK tabs doesn't reset the
+   *  SenseAudio image-model choice. */
+  byokImageModel?: string;
 }
 
 // Per-CLI model + reasoning the user picked in the model menu. Each agent
@@ -141,6 +194,7 @@ export interface ApiProtocolConfig {
 // other one's choice. Missing entries fall back to the agent's first
 // declared model (`'default'` — let the CLI pick).
 export type AgentModelChoice = AgentModelPrefs;
+export type AgentCliEnvConfig = AgentCliEnvPrefs;
 
 export type AppTheme = 'system' | 'light' | 'dark';
 
@@ -217,6 +271,14 @@ export interface NotificationsConfig {
   desktopEnabled: boolean;
 }
 
+export interface OrbitConfig {
+  enabled: boolean;
+  /** Local 24-hour clock time in HH:mm format. */
+  time: string;
+  /** Optional skill id from the examples gallery where scenario === "orbit". */
+  templateSkillId?: string | null;
+}
+
 export interface PetConfig {
   // True once the user has explicitly picked a pet (built-in or custom).
   // Until then, the entry view shows an "adopt" callout to drive discovery.
@@ -239,6 +301,11 @@ export interface AppConfig {
   model: string;
   apiProtocol?: ApiProtocol;
   apiVersion?: string;
+  /** SenseAudio BYOK only — default image model for the daemon-side
+   *  generate_image tool. Mirrors apiProtocolConfigs.senseaudio.byokImageModel
+   *  so the active protocol's value lives at the top level (consistent
+   *  with how apiKey / baseUrl / model are projected onto AppConfig). */
+  byokImageModel?: string;
   apiProtocolConfigs?: Partial<Record<ApiProtocol, ApiProtocolConfig>>;
   /** Internal config schema/migration version for localStorage upgrades. */
   configMigrationVersion?: number;
@@ -248,6 +315,7 @@ export interface AppConfig {
   skillId: string | null;
   designSystemId: string | null;
   theme?: AppTheme;
+  accentColor?: string;
   // True once the user has been through the welcome onboarding modal at
   // least once (saved or skipped). Bootstrap skips the auto-popup when
   // this is set so refreshing the page doesn't re-prompt.
@@ -258,6 +326,8 @@ export interface AppConfig {
   // Pre-existing configs without this field fall through to the agent's
   // declared default.
   agentModels?: Record<string, AgentModelChoice>;
+  // Per-agent non-secret CLI config locations injected into detection and runs.
+  agentCliEnv?: AgentCliEnvConfig;
   // Caps the upstream completion length in API mode. Defaults to 8192 when
   // unset; raise it for providers (e.g. MiMo) that allow longer responses.
   maxTokens?: number;
@@ -269,9 +339,32 @@ export interface AppConfig {
   // configs that pre-date the feature land at `undefined`, which the loader
   // normalizes to a safe default (everything off).
   notifications?: NotificationsConfig;
+  // Daily connector activity digest. When enabled, the daemon runs this once
+  // per day at the configured local time; defaults to 08:00.
+  orbit?: OrbitConfig;
   // IDs of skills/design-systems the user has explicitly disabled.
   disabledSkills?: string[];
   disabledDesignSystems?: string[];
+  // Anonymous install identifier for telemetry. Generated locally the first
+  // time a user opts in via Settings → Privacy. `null` after the user
+  // explicitly opts out (or rotates "Delete my data"); `undefined` when the
+  // daemon has not assigned an anonymous id yet.
+  installationId?: string | null;
+  // Unix-millis timestamp recording that the first-run privacy prompt was
+  // resolved. This is independent from installationId so Delete my data can
+  // rotate or clear the anonymous id without re-opening the consent banner.
+  privacyDecisionAt?: number | null;
+  // Privacy preferences governing what (if anything) is shipped to the
+  // Langfuse-backed telemetry endpoint. All three default to off until the
+  // user makes an explicit choice.
+  telemetry?: TelemetryConfig;
+  customInstructions?: string;
+}
+
+export interface TelemetryConfig {
+  metrics?: boolean;
+  content?: boolean;
+  artifactManifest?: boolean;
 }
 
 export interface ComposioSettings {
@@ -287,7 +380,24 @@ export interface LiveArtifactEventItem {
   event: Extract<AgentEvent, { kind: 'live_artifact' | 'live_artifact_refresh' }>;
 }
 
-export type { ChatAttachment, ChatCommentAttachment, ChatMessage };
+export type ChatMessageFeedbackChange =
+  | ({
+      rating: ChatMessageFeedbackRating;
+    } & Partial<
+      Pick<
+        ChatMessageFeedback,
+        'reasonCodes' | 'customReason' | 'reasonsSubmittedAt'
+      >
+    >)
+  | null;
+
+export type {
+  ChatAttachment,
+  ChatCommentAttachment,
+  ChatMessage,
+  ChatMessageFeedbackRating,
+  ChatMessageFeedbackReasonCode,
+};
 
 export interface Artifact {
   identifier: string;
@@ -338,13 +448,27 @@ export interface PromptTemplateDetail extends PromptTemplateSummary {
 
 export type {
   AgentInfo,
+  AgentTestRequest,
   AppVersionInfo,
   AppVersionResponse,
   AudioKind,
+  ConnectionTestKind,
+  ConnectionTestProtocol,
+  ConnectionTestRequest,
+  ConnectionTestResponse,
   Conversation,
   DeployConfigResponse,
   DeployProjectFileResponse,
   DesignSystemDetail,
+  DesignSystemFileDetail,
+  DesignSystemFileSummary,
+  DesignSystemGenerationJob,
+  DesignSystemPackageAudit,
+  DesignSystemPackageAuditIssue,
+  DesignSystemProvenance,
+  DesignSystemRevision,
+  DesignSystemRevisionJobRequest,
+  DesignSystemRevisionStatus,
   DesignSystemSummary,
   LiveArtifact,
   LiveArtifactDetailResponse,
@@ -356,6 +480,7 @@ export type {
   MediaAspect,
   ProjectDeploymentsResponse,
   Project,
+  ProjectPlatform,
   PreviewComment,
   PreviewCommentStatus,
   PreviewCommentTarget,
@@ -366,12 +491,22 @@ export type {
   ProjectKind,
   ProjectMetadata,
   ProjectTemplate,
+  RenameProjectFileResponse,
+  ProviderTestRequest,
+  ProviderModelOption,
+  ProviderModelsKind,
+  ProviderModelsRequest,
+  ProviderModelsResponse,
   CodexPetSummary,
   CodexPetsResponse,
   SyncCommunityPetsRequest,
   SyncCommunityPetsResponse,
   SkillDetail,
   SkillSummary,
+  InstallInput,
+  InstallSkillResponse,
+  InstallDesignSystemResponse,
+  UninstallResponse,
   UpdateDeployConfigRequest,
 };
 
